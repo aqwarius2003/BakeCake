@@ -5,8 +5,10 @@ from django.contrib.auth.models import User
 import json
 from .models import Cake, Order, Client
 from datetime import datetime
+from rest_framework.response import Response
 
-@csrf_exempt    
+
+@csrf_exempt
 def index(request):
     if request.method == 'GET' and request.GET:
         try:
@@ -14,15 +16,15 @@ def index(request):
             levels = int(request.GET.get('LEVELS', 1))
             shape = {
                 1: 'circle',
-                2: 'square', 
+                2: 'square',
                 3: 'rectangle'
             }.get(int(request.GET.get('FORM', 1)), 'circle')
-            
+
             topping = {
                 1: 'none',
                 2: 'white_sauce',
                 3: 'caramel_syrup',
-                4: 'maple_syrup', 
+                4: 'maple_syrup',
                 5: 'blueberry_syrup',
                 6: 'milk_chocolate',
                 7: 'strawberry_syrup'
@@ -66,7 +68,6 @@ def index(request):
                 total_price=cake.get_price(),
                 status='new'
             )
-
             return JsonResponse({
                 'status': 'success',
                 'order_id': order.id
@@ -78,7 +79,7 @@ def index(request):
                 'message': str(e)
             }, status=400)
 
-    return render(request, 'index.html')   
+    return render(request, 'index.html')
 
 
 
