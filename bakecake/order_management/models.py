@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Client(models.Model):
     name = models.CharField(max_length=100, verbose_name="Имя клиента", default="Не указано")
     phone = models.CharField(max_length=20, unique=True, verbose_name="Телефон")
@@ -14,6 +15,7 @@ class Client(models.Model):
         verbose_name = 'Клиент'
         verbose_name_plural = 'Клиенты'
         ordering = ['-created_at']
+
 
 class Cake(models.Model):
     LEVEL_CHOICES = [

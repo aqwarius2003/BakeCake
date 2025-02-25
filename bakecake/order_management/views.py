@@ -1,16 +1,15 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.models import User
-import json
 from .models import Cake, Order, Client
 from datetime import datetime
-from rest_framework.response import Response
+from django.contrib import messages
+from django.shortcuts import redirect
 
 
 @csrf_exempt
 def index(request):
-    if request.method == 'GET' and request.GET:
+    if request.method == 'GET' and len(request.GET) > 1:
         try:
             # Получаем данные из GET-параметров
             levels = int(request.GET.get('LEVELS', 1))
@@ -39,19 +38,13 @@ def index(request):
             )
 
             # Создаем или получаем клиента
-            client, created = Client.objects.get_or_create(
-                phone=request.GET.get('PHONE'),
+            client, created = Client.objects.update_or_create(
+                phone=request.GET['PHONE'],
                 defaults={
-                    'name': request.GET.get('NAME'),
-                    'email': request.GET.get('EMAIL')
+                    'name': request.GET['NAME'],
+                    'email': request.GET.get('EMAIL', '')
                 }
             )
-
-            # Если клиент существует, обновляем его данные
-            if not created:
-                client.name = request.GET.get('NAME')
-                client.email = request.GET.get('EMAIL')
-                client.save()
 
             # Преобразуем дату и время
             delivery_date = datetime.strptime(request.GET.get('DATE'), '%Y-%m-%d').date()
@@ -61,25 +54,19 @@ def index(request):
             order = Order.objects.create(
                 client=client,
                 cake=cake,
-                address=request.GET.get('ADDRESS'),
+                address=request.GET['ADDRESS'],
                 comment=request.GET.get('DELIVCOMMENTS', ''),
                 delivery_date=delivery_date,
                 delivery_time=delivery_time,
                 total_price=cake.get_price(),
                 status='new'
             )
-            return JsonResponse({
-                'status': 'success',
-                'order_id': order.id
-            })
+            
+            messages.success(request, f'Заказ №{order.id} успешно создан! Мы свяжемся с вами в ближайшее время.')
+            return redirect('index')
 
         except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            }, status=400)
+            messages.error(request, 'Произошла ошибка при создании заказа. Пожалуйста, попробуйте снова.')
+            return redirect('index')
 
     return render(request, 'index.html')
-
-
-

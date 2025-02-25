@@ -133,13 +133,41 @@ Vue.createApp({
     },
     methods: {
         ToStep4() {
-
             this.Designed = true
             setTimeout(() => {
                 this.$refs.ToStep4.click();
             }, 0);
+        },
+        async submitOrder() {
+            try {
+                // Сначала отправляем форму
+                await this.$refs.HiddenFormSubmit.click();
+                // Очищаем форму
+                this.resetForm();
+                // Используем history API для очистки URL без перезагрузки
+                history.pushState({}, '', '/');
+            } catch (error) {
+                console.error('Error submitting form:', error);
+            }
+        },
+        resetForm() {
+            // Сброс всех полей формы
+            this.Levels = 0;
+            this.Form = 0;
+            this.Topping = 0;
+            this.Berries = 0;
+            this.Decor = 0;
+            this.Words = '';
+            this.Comments = '';
+            this.Name = '';
+            this.Phone = null;
+            this.Email = null;
+            this.Address = null;
+            this.Dates = null;
+            this.Time = null;
+            this.DelivComments = '';
+            this.Designed = false;
         }
-
     },
     computed: {
         Cost() {
