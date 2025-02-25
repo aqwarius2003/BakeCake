@@ -1,0 +1,7 @@
+django==4.2
+environs==11.2.1
+pillow==11.0.0
+phonenumbers==8.13.42
+django-phonenumber-field==8.0.0
+phonenumbers==8.13.42
+django-phonenumber-field==8.0.0
