@@ -44,15 +44,46 @@ Vue.createApp({
     methods: {
         RegSubmit() {
             if (this.Step === 'Number') {
-                this.$refs.HiddenFormSubmitReg.click()
-                this.Step = 'Code'
-                this.EnteredNumber = this.RegInput
-                this.RegInput = ''
-            }
-            else {
-                this.$refs.HiddenFormSubmitReg.click()
-                this.Step = 'Finish'
-                this.RegInput = 'Регистрация успешна'
+                // Отправляем номер телефона на сервер для запроса кода
+                fetch('/request_code/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken') // Получаем CSRF-токен
+                    },
+                    body: JSON.stringify({ phone: this.RegInput })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        this.Step = 'Code';
+                        this.EnteredNumber = this.RegInput;
+                        this.RegInput = '';
+                    } else {
+                        alert('Ошибка при запросе кода.');
+                    }
+                });
+            } else {
+                // Отправляем код и номер телефона на сервер для проверки
+                fetch('/verify_code/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ phone: this.EnteredNumber, code: this.RegInput })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        this.Step = 'Finish';
+                        this.RegInput = 'Регистрация успешна';
+                        // Перезагружаем страницу для обновления состояния авторизации
+                        window.location.reload();
+                    } else {
+                        alert('Неверный код.');
+                    }
+                });
             }
         },
         ToRegStep1() {
@@ -64,5 +95,20 @@ Vue.createApp({
             this.RegInput = ''
             EnteredNumber = ''
         }
+        getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
     }
-}).mount('#RegModal')
+}).mount('#RegModal');
