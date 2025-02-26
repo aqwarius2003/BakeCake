@@ -20,22 +20,22 @@
 		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
 			<span class="navbar-toggler-icon"></span>
 		</button>
-		<a class="navbar-brand" href="#">
+		<a class="navbar-brand" href="{% url 'index' %}">
 			<img src="{% static 'img/Logo.svg' %}" alt="CakeBake">
 		</a>
 		<div class="collapse navbar-collapse justify-content-end" id="navbar">
 			<ul class="navbar-nav">
 				<li class="nav-item me-5">
-					<a class="nav-link fw-lighter cake_blue" href="./index.html#step3">Создать торт</a>
+					<a class="nav-link fw-lighter cake_blue" href="{% url 'index' %}#step3">Создать торт</a>
 				</li>
 				<li class="nav-item me-5">
-					<a class="nav-link fw-lighter cake_blue" href="./index.html#step2">Каталог</a>
+					<a class="nav-link fw-lighter cake_blue" href="{% url 'index' %}#step2">Каталог</a>
 				</li>
 				<li class="nav-item me-5">
-					<a class="nav-link fw-lighter cake_blue" href="./index.html#step4">Оплата и доставка</a>
+					<a class="nav-link fw-lighter cake_blue" href="{% url 'index' %}#payment-delivery">Оплата и доставка</a>
 				</li>
 				<li class="nav-item me-5">
-					<a class="nav-link fw-lighter cake_blue" href="./index.html#Contacts">Контакты</a>
+					<a class="nav-link fw-lighter cake_blue" href="{% url 'index' %}#Contacts">Контакты</a>
 				</li>
 				<li class="nav-item d-block d-xl-flex flex-column align-items-end me-5">
 					<small class="fw-lighter text-decoration-none fs_12 cake_blue">8 (495) 000-00-00</small>
@@ -51,7 +51,7 @@
 						<span class="position-absolute translate-middle badge rounded-pill cake__bg_pink fs_8">1</span>
 					</a>
 					<a class="nav-link fw-lighter cake_grey fs_12" href="#">
-						Ирина
+						{{ client.name }}
 					</a>
 				</li>
 			</ul>
@@ -89,8 +89,16 @@
                                     <span class="cake_blue">Уровней: {{ order.cake.levels }}</span><br>
                                     <span class="cake_blue">Форма: {{ order.cake.get_shape_display }}</span><br>
                                     <span class="cake_blue">Топпинг: {{ order.cake.get_topping_display }}</span><br>
-                                    <span class="cake_blue">Ягоды: {{ order.cake.berries }}</span><br>
-                                    <span class="cake_blue">Декор: {{ order.cake.decor }}</span><br>
+                                    {% if order.cake.berries %}
+                                        <span class="cake_blue">Ягоды: {{ order.cake.berries }}</span><br>
+                                    {% else %}
+                                        <span class="cake_blue">Ягоды: Нет</span><br>
+                                    {% endif %}
+                                    {% if order.cake.decor %}
+                                        <span class="cake_blue">Декор: {{ order.cake.decor }}</span><br>
+                                    {% else %}
+                                        <span class="cake_blue">Декор: Нет</span><br>
+                                    {% endif %}
                                     <span class="cake_blue">Надпись: {{ order.cake.inscription }}</span><br>
                                     <span class="cake_pink">Цена: {{ order.total_price }}₽</span>
                                 </div>

@@ -93,8 +93,8 @@ Vue.createApp({
         Reset() {
             this.Step = 'Number'
             this.RegInput = ''
-            EnteredNumber = ''
-        }
+            this.EnteredNumber = ''
+        },
         getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {

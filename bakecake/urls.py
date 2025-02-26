@@ -11,4 +11,6 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('lk_order/', views.lk_order, name='lk_order'),
+    path('request_code/', views.request_code, name='request_code'),
+    path('verify_code/', views.verify_code, name='verify_code'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

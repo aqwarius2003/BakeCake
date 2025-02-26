@@ -149,10 +149,10 @@ def verify_code(request):
         stored_phone = request.session.get('phone_number')
 
         if phone == stored_phone and code == stored_code:
-            # Создаем или получаем клиента
-            client, created = Client.objects.update_or_create(
+            # Проверяем, существует ли клиент
+            client, created = Client.objects.get_or_create(
                 phone=phone,
-                defaults={'name': 'Пользователь'}  # Можете запросить имя позже
+                defaults={'name': 'Пользователь'}  # Устанавливаем имя только для новых клиентов
             )
             request.session['client_id'] = client.id
             # Очищаем сессионные переменные
