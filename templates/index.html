@@ -398,7 +398,7 @@
 								<label for="time" class="my-1 fs_40 cake_blue">Время</label>
 							</div>
 							<div class="col-6 col-lg-4 d-flex flex-column">
-								<v-field v-model="Address" :class="Address ? 'cake__border_blue': ''" type="text" name="address" id="address" placeholder="Введите ваш адрес" class="form-control my-3 cake__textinput" :value="last_order ? last_order.address : ''"></v-field>
+								<v-field v-model="Address" :class="Address ? 'cake__border_blue': ''" type="text" name="address" id="address" placeholder="Введите ваш адрес" class="form-control my-3 cake__textinput" :value="client ? client.address : ''"></v-field>
 								<v-field v-model="Dates" :class="Dates ? 'cake__border_blue': ''" type="date" name="date" id="date" placeholder="ДД.ММ.ГГ" class="form-control my-3 cake__textinput"></v-field>
 								<v-field v-model="Time" :class="Time ? 'cake__border_blue': ''" type="time" name="time" id="time" placeholder="00:00" class="form-control my-3 cake__textinput"></v-field>
 							</div>

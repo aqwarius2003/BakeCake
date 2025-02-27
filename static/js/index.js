@@ -235,6 +235,7 @@ Vue.createApp({
             this.Name = this.client.name || '';
             this.Phone = this.client.phone || '';
             this.Email = this.client.email || '';
+            this.Address = this.client.address || '';
         }
 
         // Добавляем обработчик события для получения данных из сессии
@@ -244,6 +245,7 @@ Vue.createApp({
                 this.Name = this.client.name || '';
                 this.Phone = this.client.phone || '';
                 this.Email = this.client.email || '';
+                this.Address = this.client.address || '';
             }
         });
     }

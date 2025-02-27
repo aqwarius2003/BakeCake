@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET
 
 
 @csrf_exempt
@@ -22,9 +23,17 @@ def index(request):
     print(f"Client ID from session: {client_id}")
     client_data = None
     client = None
+
     if client_id:
         try:
             client = Client.objects.get(pk=client_id)
+            # Получаем последний адрес из заказов клиента, если они есть
+            try:
+                last_order = Order.objects.filter(client=client).latest('created_at')
+                last_address = last_order.address
+            except Order.DoesNotExist:
+                last_address = ''
+                
             print(f"Found client in DB: {client.name} ({client.id})")
             # Проверяем наличие сохраненных данных в сессии
             session_client_data = request.session.get('client_data')
@@ -35,13 +44,15 @@ def index(request):
                 client_data = json.dumps({
                     'name': client.name,
                     'phone': client.phone,
-                    'email': client.email
+                    'email': client.email,
+                    'address': last_address
                 })
                 # Сохраняем данные в сессии
                 request.session['client_data'] = {
                     'name': client.name,
                     'phone': client.phone,
-                    'email': client.email
+                    'email': client.email,
+                    'address': last_address
                 }
                 request.session.modified = True
                 print("Updated session with new client data")
@@ -87,7 +98,8 @@ def index(request):
                 phone=request.GET['PHONE'],
                 defaults={
                     'name': request.GET['NAME'],
-                    'email': request.GET.get('EMAIL', '')
+                    'email': request.GET.get('EMAIL', ''),
+                    # 'last_address':
                 }
             )
 
@@ -119,7 +131,8 @@ def index(request):
             request.session['client_data'] = {
                 'name': client.name,
                 'phone': client.phone,
-                'email': client.email
+                'email': client.email,
+                'address': last_address
             }
             request.session.modified = True
             print(f"Updated session data: {dict(request.session)}")
@@ -246,17 +259,29 @@ def lk_view(request):
     return render(request, 'lk.html', {'client': client})
 
 
-@require_http_methods(["GET"])
+@require_GET
 def get_client_data(request):
-    client_id = request.session.get('client_id')
-    if not client_id:
-        return JsonResponse({'error': 'Not authenticated'}, status=401)
-
+    phone = request.GET.get('phone')
+    client_data = {}
+    
     try:
-        client = Client.objects.get(pk=client_id)
-        return JsonResponse({'name': client.name, 'phone': client.phone, 'email': client.email})
+        client = Client.objects.get(phone=phone)
+        try:
+            last_order = Order.objects.filter(client=client).latest('created_at')
+            address = last_order.address
+        except Order.DoesNotExist:
+            address = ''
+            
+        client_data = {
+            'name': client.name,
+            'phone': client.phone,
+            'email': client.email,
+            'address': address
+        }
     except Client.DoesNotExist:
-        return JsonResponse({'error': 'Client not found'}, status=404)
+        pass
+    
+    return JsonResponse(client_data)
 
 
 @csrf_exempt
@@ -272,12 +297,14 @@ def update_client_data(request):
         client.name = data.get('name', client.name)
         client.phone = data.get('phone', client.phone)
         client.email = data.get('email', client.email)
+        client.last_address = data.get('last_address', client.last_address)
         client.save()
 
         # Обновляем данные в сессии
         request.session['client_name'] = client.name
         request.session['client_phone'] = client.phone
         request.session['client_email'] = client.email
+        request.session['client_last_address'] = client.last_address
 
         # Возвращаем JSON с указанием на перенаправление
         return JsonResponse({'status': 'success', 'redirect_url': '/lk_order/'})
