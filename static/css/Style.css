@@ -16,6 +16,9 @@ html {
     font-family: Garet, serif;
     font-size: 16px;
     font-weight: normal;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 body {
     background-color: white;
@@ -132,4 +135,12 @@ li .cake__textinput:read-only {
 }
 .z-index-1 {
     z-index: -1;
+}
+
+input::-moz-focus-outer {
+    border: 0;
+}
+
+.form-range::-moz-range-thumb {
+    transition: none;
 }

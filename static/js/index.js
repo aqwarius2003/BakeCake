@@ -142,17 +142,58 @@ Vue.createApp({
         },
         async submitOrder() {
             try {
+                console.log('=== DEBUG: Starting form submission ===');
+                console.log('Current client data:', {
+                    name: this.Name,
+                    phone: this.Phone,
+                    email: this.Email
+                });
+                
                 // Сначала отправляем форму
                 await this.$refs.HiddenFormSubmit.click();
+                console.log('Form submitted successfully');
+                
+                // Сохраняем текущие данные клиента
+                const currentClientData = {
+                    name: this.Name,
+                    phone: this.Phone,
+                    email: this.Email
+                };
+                console.log('Saved current client data:', currentClientData);
+                
                 // Очищаем форму
                 this.resetForm();
+                console.log('Form reset completed');
+                
                 // Используем history API для очистки URL без перезагрузки
                 history.pushState({}, '', '/');
+                console.log('URL cleaned');
+                
+                // Восстанавливаем данные клиента после очистки формы
+                this.client = currentClientData;
+                this.Name = currentClientData.name;
+                this.Phone = currentClientData.phone;
+                this.Email = currentClientData.email;
+                console.log('Client data restored:', {
+                    name: this.Name,
+                    phone: this.Phone,
+                    email: this.Email
+                });
             } catch (error) {
                 console.error('Error submitting form:', error);
             }
         },
         resetForm() {
+            console.log('=== DEBUG: Starting form reset ===');
+            console.log('Current form state:', {
+                Levels: this.Levels,
+                Form: this.Form,
+                Topping: this.Topping,
+                Name: this.Name,
+                Phone: this.Phone,
+                Email: this.Email
+            });
+            
             // Сброс всех полей формы
             this.Levels = 0;
             this.Form = 0;
@@ -169,6 +210,15 @@ Vue.createApp({
             this.Time = null;
             this.DelivComments = '';
             this.Designed = false;
+            
+            console.log('Form reset completed. New state:', {
+                Levels: this.Levels,
+                Form: this.Form,
+                Topping: this.Topping,
+                Name: this.Name,
+                Phone: this.Phone,
+                Email: this.Email
+            });
         }
     },
     computed: {

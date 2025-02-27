@@ -13,24 +13,48 @@ from django.views.decorators.http import require_http_methods
 
 @csrf_exempt
 def index(request):
+    print("=== DEBUG: Starting index view ===")
+    print(f"Session ID: {request.session.session_key}")
+    print(f"All session data: {dict(request.session)}")
+    
     # Проверяем, есть ли ID пользователя в сессии
     client_id = request.session.get('client_id')
+    print(f"Client ID from session: {client_id}")
     client_data = None
+    client = None
     if client_id:
         try:
             client = Client.objects.get(pk=client_id)
-            client_data = {
-                'name': client.name,
-                'phone': client.phone,
-                'email': client.email
-            }
+            print(f"Found client in DB: {client.name} ({client.id})")
+            # Проверяем наличие сохраненных данных в сессии
+            session_client_data = request.session.get('client_data')
+            print(f"Client data from session: {session_client_data}")
+            if session_client_data:
+                client_data = json.dumps(session_client_data)
+            else:
+                client_data = json.dumps({
+                    'name': client.name,
+                    'phone': client.phone,
+                    'email': client.email
+                })
+                # Сохраняем данные в сессии
+                request.session['client_data'] = {
+                    'name': client.name,
+                    'phone': client.phone,
+                    'email': client.email
+                }
+                request.session.modified = True
+                print("Updated session with new client data")
         except Client.DoesNotExist:
-            # pass
-            # удаляем из сессии пользвателя, если его не существует
+            print("Client not found in DB, clearing session")
             del request.session['client_id']
+            if 'client_data' in request.session:
+                del request.session['client_data']
 
     # Если данные получены из формы
     if request.method == 'GET' and len(request.GET) > 1:
+        print("=== DEBUG: Processing order form ===")
+        print(f"Form data: {dict(request.GET)}")
         try:
             # Получаем данные из GET-параметров
             levels = int(request.GET.get('LEVELS', 1))
@@ -86,13 +110,25 @@ def index(request):
                 total_price=cake.get_price(),
                 status='new'
             )
-            # Сохраняем ID клиента в сессии
+            # После создания заказа
+            print(f"Order created successfully. Order ID: {order.id}")
+            print(f"Saving client data to session. Client ID: {client.id}")
+            
+            # Сохраняем ID клиента и данные в сессии
             request.session['client_id'] = client.id
+            request.session['client_data'] = {
+                'name': client.name,
+                'phone': client.phone,
+                'email': client.email
+            }
+            request.session.modified = True
+            print(f"Updated session data: {dict(request.session)}")
 
             messages.success(
                 request,
                 f'Заказ №{order.id} успешно создан! Мы свяжемся с вами в ближайшее время.'
             )
+            print("=== DEBUG: Redirecting after order creation ===")
             return redirect('index')
 
         except Exception as e:
@@ -102,7 +138,10 @@ def index(request):
             )
             return redirect('index')
 
-    return render(request, 'index.html', {'client_data': client_data})
+    return render(request, 'index.html', {
+        'client_data': client_data,
+        'client': client  # Добавляем client в контекст
+    })
 
 
 @csrf_exempt
