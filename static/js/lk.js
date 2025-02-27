@@ -49,8 +49,45 @@ Vue.createApp({
     },
     methods: {
         ApplyChanges() {
-            this.Edit = false
-            this.$refs.HiddenFormSubmit.click()
+            this.Edit = false;
+            fetch('/api/update-client-data/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: this.Name,
+                    phone: this.Phone,
+                    email: this.Email,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Client data updated successfully');
+                    window.location.href = data.redirect_url;
+                } else {
+                    console.error('Error updating client data:', data.error);
+                }
+            })
+            .catch(error => console.error('Error updating client data:', error));
         }
+    },
+    mounted() {
+        // Fetch client data from the server
+        fetch('/api/client-data')
+            .then(response => response.json())
+            .then(data => {
+                this.Name = data.name;
+                this.Phone = data.phone;
+                this.Email = data.email;
+
+                // Check if the URL has the 'edit' parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has('edit')) {
+                    this.Edit = true;
+                }
+            })
+            .catch(error => console.error('Error fetching client data:', error));
     }
 }).mount('#LK')

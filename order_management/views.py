@@ -8,6 +8,8 @@ from django.shortcuts import redirect
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.views.decorators.http import require_http_methods
+
 
 @csrf_exempt
 def index(request):
@@ -61,8 +63,12 @@ def index(request):
             )
 
             # Преобразуем дату и время
-            delivery_date = datetime.strptime(request.GET.get('DATE'), '%Y-%m-%d').date()
-            delivery_time = datetime.strptime(request.GET.get('TIME'), '%H:%M').time()
+            delivery_date = datetime.strptime(
+                request.GET.get('DATE'), '%Y-%m-%d'
+            ).date()
+            delivery_time = datetime.strptime(
+                request.GET.get('TIME'), '%H:%M'
+            ).time()
 
             # Создаем заказ
             order = Order.objects.create(
@@ -78,14 +84,20 @@ def index(request):
             # Сохраняем ID клиента в сессии
             request.session['client_id'] = client.id
 
-            messages.success(request, f'Заказ №{order.id} успешно создан! Мы свяжемся с вами в ближайшее время.')
+            messages.success(
+                request,
+                f'Заказ №{order.id} успешно создан! Мы свяжемся с вами в ближайшее время.'
+            )
             return redirect('index')
 
         except Exception as e:
-            messages.error(request, 'Произошла ошибка при создании заказа. Пожалуйста, попробуйте снова.')
+            messages.error(
+                request,
+                'Произошла ошибка при создании заказа. Пожалуйста, попробуйте снова.'
+            )
             return redirect('index')
 
-    return render(request, 'index.html',  {'client': client})
+    return render(request, 'index.html', {'client': client})
 
 
 @csrf_exempt
@@ -93,7 +105,7 @@ def register(request):
     if request.method == 'POST':
         phone = request.POST.get('phone')
         print(f'получен номер {phone}')
-        #Здесь должна быть логика проверки кода из СМС
+        # Здесь должна быть логика проверки кода из СМС
         name = request.POST.get('name')
         client, created = Client.objects.update_or_create(
             phone=phone,
@@ -162,3 +174,55 @@ def verify_code(request):
         else:
             return JsonResponse({'status': 'error'})
     return JsonResponse({'status': 'error'})
+
+
+def lk_view(request):
+    client_id = request.session.get('client_id')
+    client = None
+    if client_id:
+        try:
+            client = Client.objects.get(pk=client_id)
+        except Client.DoesNotExist:
+            return redirect('index')
+    return render(request, 'lk.html', {'client': client})
+
+
+@require_http_methods(["GET"])
+def get_client_data(request):
+    client_id = request.session.get('client_id')
+    if not client_id:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    try:
+        client = Client.objects.get(pk=client_id)
+        return JsonResponse({'name': client.name, 'phone': client.phone, 'email': client.email})
+    except Client.DoesNotExist:
+        return JsonResponse({'error': 'Client not found'}, status=404)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_client_data(request):
+    client_id = request.session.get('client_id')
+    if not client_id:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    try:
+        client = Client.objects.get(pk=client_id)
+        data = json.loads(request.body)
+        client.name = data.get('name', client.name)
+        client.phone = data.get('phone', client.phone)
+        client.email = data.get('email', client.email)
+        client.save()
+
+        # Обновляем данные в сессии
+        request.session['client_name'] = client.name
+        request.session['client_phone'] = client.phone
+        request.session['client_email'] = client.email
+
+        # Возвращаем JSON с указанием на перенаправление
+        return JsonResponse({'status': 'success', 'redirect_url': '/lk_order/'})
+    except Client.DoesNotExist:
+        return JsonResponse({'error': 'Client not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
