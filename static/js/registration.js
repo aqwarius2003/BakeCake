@@ -49,7 +49,7 @@ Vue.createApp({
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': this.getCookie('csrftoken') // Получаем CSRF-токен
+                        'X-CSRFToken': this.getCookie('csrftoken')
                     },
                     body: JSON.stringify({ phone: this.RegInput })
                 })
@@ -76,10 +76,8 @@ Vue.createApp({
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        this.Step = 'Finish';
-                        this.RegInput = 'Регистрация успешна';
-                        // Перезагружаем страницу для обновления состояния авторизации
-                        window.location.reload();
+                        // Используем URL для перенаправления, который возвращается из вьюхи
+                        window.location.href = data.redirect_url;
                     } else {
                         alert('Неверный код.');
                     }

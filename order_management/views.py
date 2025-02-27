@@ -104,8 +104,18 @@ def index(request):
 def register(request):
     if request.method == 'POST':
         phone = request.POST.get('phone')
-        print(f'получен номер {phone}')
-        # Здесь должна быть логика проверки кода из СМС
+        # тут будет блок проверки на валидность номера телефона
+        if not phone:
+            messages.error(request, "Введите номер телефона.")
+            return redirect('register')
+
+        # Проверка, существует ли телефон в базе данных
+        if not Client.objects.filter(phone=phone).exists():
+            # Перенаправление в личный кабинет для ввода данных
+            messages.info(request, "Введите свое имя и email.")
+            return redirect('/lk/?edit=true')
+
+        # Логика создания клиента, если телефон существует
         name = request.POST.get('name')
         client, created = Client.objects.update_or_create(
             phone=phone,
@@ -164,13 +174,18 @@ def verify_code(request):
             # Проверяем, существует ли клиент
             client, created = Client.objects.get_or_create(
                 phone=phone,
-                defaults={'name': 'Пользователь'}  # Устанавливаем имя только для новых клиентов
+                defaults={'name': '', 'email': ''}  # Устанавливаем имя и емейл пустыми только для новых клиентов
             )
             request.session['client_id'] = client.id
             # Очищаем сессионные переменные
             del request.session['verification_code']
             del request.session['phone_number']
-            return JsonResponse({'status': 'success'})
+            
+            # Перенаправление в зависимости от того, новый клиент или нет
+            if created:
+                return JsonResponse({'status': 'success', 'redirect_url': '/lk/?edit=true'})
+            else:
+                return JsonResponse({'status': 'success', 'redirect_url': '/lk_order/'})
         else:
             return JsonResponse({'status': 'error'})
     return JsonResponse({'status': 'error'})
