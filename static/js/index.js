@@ -128,7 +128,9 @@ Vue.createApp({
             Address: null,
             Dates: null,
             Time: null,
-            DelivComments: ''
+            DelivComments: '',
+            client: null,
+            last_order: null,
         }
     },
     methods: {
@@ -176,5 +178,23 @@ Vue.createApp({
                 this.Costs.Toppings[this.Topping] + this.Costs.Berries[this.Berries] +
                 this.Costs.Decors[this.Decor] + W
         }
+    },
+    mounted() {
+        // Проверяем, есть ли данные клиента в сессии
+        if (this.client) {
+            this.Name = this.client.name || '';
+            this.Phone = this.client.phone || '';
+            this.Email = this.client.email || '';
+        }
+
+        // Добавляем обработчик события для получения данных из сессии
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'clientData') {
+                this.client = event.data.client;
+                this.Name = this.client.name || '';
+                this.Phone = this.client.phone || '';
+                this.Email = this.client.email || '';
+            }
+        });
     }
 }).mount('#VueApp')

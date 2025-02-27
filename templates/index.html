@@ -479,5 +479,13 @@
 
 <script src="{% static 'js/index.js' %}"></script>
 <script src="{% static 'js/registration.js' %}"></script>
+<script>
+    window.onload = function() {
+        const clientData = {{ client_data|safe }};
+        if (clientData) {
+            window.postMessage({ type: 'clientData', client: clientData }, '*');
+        }
+    };
+</script>
 </body>
 </html>

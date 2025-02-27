@@ -15,10 +15,15 @@ from django.views.decorators.http import require_http_methods
 def index(request):
     # Проверяем, есть ли ID пользователя в сессии
     client_id = request.session.get('client_id')
-    client = None
+    client_data = None
     if client_id:
         try:
             client = Client.objects.get(pk=client_id)
+            client_data = {
+                'name': client.name,
+                'phone': client.phone,
+                'email': client.email
+            }
         except Client.DoesNotExist:
             # pass
             # удаляем из сессии пользвателя, если его не существует
@@ -97,7 +102,7 @@ def index(request):
             )
             return redirect('index')
 
-    return render(request, 'index.html', {'client': client})
+    return render(request, 'index.html', {'client_data': client_data})
 
 
 @csrf_exempt
