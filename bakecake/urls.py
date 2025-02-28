@@ -10,4 +10,5 @@ print("STATIC_ROOT:", settings.STATIC_ROOT)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
+    path('webhook/', views.telegram_webhook, name='telegram_webhook'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
