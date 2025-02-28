@@ -99,7 +99,6 @@ class Cake(models.Model):
         if self.inscription:
             base_price += 500
         
-        # Добавляем наценку за срочность
         if is_urgent:
             base_price *= 1.2  # Наценка 20% для срочных заказов
         

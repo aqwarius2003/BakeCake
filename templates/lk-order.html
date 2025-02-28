@@ -97,12 +97,12 @@
                                     <span class="cake_blue">Форма: {{ order.cake.get_shape_display }}</span><br>
                                     <span class="cake_blue">Топпинг: {{ order.cake.get_topping_display }}</span><br>
                                     {% if order.cake.berries %}
-                                        <span class="cake_blue">Ягоды: {{ order.cake.berries }}</span><br>
+                                        <span class="cake_blue">Ягоды: {{ order.cake.get_berries_display }}</span><br>
                                     {% else %}
                                         <span class="cake_blue">Ягоды: Нет</span><br>
                                     {% endif %}
                                     {% if order.cake.decor %}
-                                        <span class="cake_blue">Декор: {{ order.cake.decor }}</span><br>
+                                        <span class="cake_blue">Декор: {{ order.cake.get_decor_display }}</span><br>
                                     {% else %}
                                         <span class="cake_blue">Декор: Нет</span><br>
                                     {% endif %}

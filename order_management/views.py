@@ -90,6 +90,8 @@ def index(request):
                 levels=levels,
                 shape=shape,
                 topping=topping,
+                berries=int(request.GET.get('BERRIES', 0)) if int(request.GET.get('BERRIES', 0)) > 0 else None,
+                decor=int(request.GET.get('DECOR', 0)) if int(request.GET.get('DECOR', 0)) > 0 else None,
                 inscription=request.GET.get('WORDS', '')
             )
 
@@ -111,7 +113,10 @@ def index(request):
                 request.GET.get('TIME'), '%H:%M'
             ).time()
 
-            # Создаем заказ
+            # Определяем, является ли заказ срочным
+            is_urgent = (datetime.combine(delivery_date, delivery_time) - datetime.now()).total_seconds() < 24 * 3600
+
+            # Создаем заказ с учетом срочности
             order = Order.objects.create(
                 client=client,
                 cake=cake,
@@ -119,7 +124,7 @@ def index(request):
                 comment=request.GET.get('DELIVCOMMENTS', ''),
                 delivery_date=delivery_date,
                 delivery_time=delivery_time,
-                total_price=cake.get_price(),
+                total_price=cake.get_price(is_urgent=is_urgent),
                 status='new'
             )
             # После создания заказа

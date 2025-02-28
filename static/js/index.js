@@ -100,7 +100,7 @@ Vue.createApp({
             },
             DATA: {
                 Levels: ['не выбрано', '1', '2', '3'],
-                Forms: ['не выбрано', 'Круг', 'Квадрат', 'Прямоугольник'],
+                Forms: ['не выбрано', 'Квадрат','Круг' , 'Прямоугольник'],
                 Toppings: ['не выбрано', 'Без', 'Белый соус', 'Карамельный', 'Кленовый', 'Черничный', 'Молочный шоколад', 'Клубничный'],
                 Berries: ['нет', 'Ежевика', 'Малина', 'Голубика', 'Клубника'],
                 Decors: [ 'нет', 'Фисташки', 'Безе', 'Фундук', 'Пекан', 'Маршмеллоу', 'Марципан']
@@ -241,13 +241,12 @@ Vue.createApp({
                 const now = new Date()
                 const hoursDiff = (orderDateTime - now) / (1000 * 60 * 60)
                 
-                if (hoursDiff < 24) {
-                    this.isUrgent = true
-                    return Math.round(this.Cost * this.getUrgentMarkup())
-                }
+                this.isUrgent = hoursDiff < 24;
             }
             
-            this.isUrgent = false
+            if (this.isUrgent) {
+                return Math.round(this.Cost * 1.2) // +20% за срочность
+            }
             return this.Cost
         }
     },
