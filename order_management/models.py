@@ -67,22 +67,42 @@ class Cake(models.Model):
     def __str__(self):
         return f"Торт {self.levels} уровня, {self.shape} форма"
 
-    def get_price(self):
+    def get_price(self, is_urgent=False):
         base_price = 0
+        # Цены соответствуют значениям из CHOICES
         level_prices = {1: 400, 2: 750, 3: 1100}
-        shape_prices = {'square': 600, 'circle': 400, 'rectangle': 1000}
-        topping_prices = {
-            'none': 0, 'white_sauce': 200, 'caramel_syrup': 180,
-            'maple_syrup': 200, 'strawberry_syrup': 300,
-            'blueberry_syrup': 350, 'milk_chocolate': 200
+        shape_prices = {
+            'circle': 600,
+            'square': 400, 
+            'rectangle': 1000
         }
+        topping_prices = {
+            'none': 0,
+            'white_sauce': 200,
+            'caramel_syrup': 180,
+            'maple_syrup': 200,
+            'blueberry_syrup': 300,
+            'milk_chocolate': 350,
+            'strawberry_syrup': 200
+        }
+        berry_prices = {1: 400, 2: 300, 3: 450, 4: 500}
+        decor_prices = {1: 300, 2: 400, 3: 350, 4: 300, 5: 200, 6: 280}
     
         base_price += level_prices.get(self.levels, 0)
         base_price += shape_prices.get(self.shape, 0)
         base_price += topping_prices.get(self.topping, 0)
         
+        if self.berries:
+            base_price += berry_prices.get(self.berries, 0)
+        if self.decor:
+            base_price += decor_prices.get(self.decor, 0)
         if self.inscription:
             base_price += 500
+        
+        # Добавляем наценку за срочность
+        if is_urgent:
+            base_price *= 1.2  # Наценка 20% для срочных заказов
+        
         return base_price
 
     class Meta:

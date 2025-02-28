@@ -121,6 +121,7 @@ Vue.createApp({
             Words: '',
             Comments: '',
             Designed: false,
+            isUrgent: false,
 
             Name: '',
             Phone: null,
@@ -219,14 +220,35 @@ Vue.createApp({
                 Phone: this.Phone,
                 Email: this.Email
             });
+        },
+        getUrgentMarkup() {
+            return 1.2; // Наценка 20%
         }
     },
     computed: {
         Cost() {
             let W = this.Words ? this.Costs.Words : 0
-            return this.Costs.Levels[this.Levels] + this.Costs.Forms[this.Form] +
+            let basePrice = this.Costs.Levels[this.Levels] + this.Costs.Forms[this.Form] +
                 this.Costs.Toppings[this.Topping] + this.Costs.Berries[this.Berries] +
                 this.Costs.Decors[this.Decor] + W
+            
+            return basePrice
+        },
+        TotalCost() {
+            // Проверяем срочность заказа только если выбраны дата и время
+            if (this.Dates && this.Time) {
+                const orderDateTime = new Date(this.Dates + 'T' + this.Time)
+                const now = new Date()
+                const hoursDiff = (orderDateTime - now) / (1000 * 60 * 60)
+                
+                if (hoursDiff < 24) {
+                    this.isUrgent = true
+                    return Math.round(this.Cost * this.getUrgentMarkup())
+                }
+            }
+            
+            this.isUrgent = false
+            return this.Cost
         }
     },
     mounted() {

@@ -378,6 +378,7 @@
 										<li>Декор: {{ DATA.Decors[Decor] }}</li>
 									</ul>
 									<span>{{ Words === '' ? 'Без надписи' : Words }}</span>
+									<span v-if="isUrgent" class="cake_pink">За срочность +{{ (getUrgentMarkup() - 1) * 100 }}%</span>
 									{% endverbatim %}
 								</div>
 							</div>
@@ -409,9 +410,11 @@
 								<textarea v-model="DelivComments" :class="DelivComments ? 'cake__border_blue': ''" id="deliv-comment" class="form-control cake__textinput mt-3" rows="2" style="resize: none"></textarea>
 							</div>
 							<div class="col-12 col-md-6 d-flex flex-column align-items-center align-items-md-end mt-3 mt-md-0">
+								{% verbatim %}
 								<div class="d-flex">
-									<span class="cake_pink fs_40 fw-bold me-2">Итого: {{ Cost }}₽</span>
+									<span class="cake_pink fs_40 fw-bold me-2">Итого: {{ TotalCost }} ₽</span>
 								</div>
+								{% endverbatim %}
 								<small class="fw-lighter text-decoration-none fs_12 cake_blue" style="text-align: right;">
 									Нажимая «К оплате», вы соглашаетесь на обработку ваших<br>персональных данных в соответствии с
 									<a href="/doc/soglasie.pdf" target="_blank" style="font-size: inherit;">Политикой конфиденциальности</a>.
