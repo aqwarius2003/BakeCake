@@ -32,8 +32,7 @@ def index(request):
                 last_order = Order.objects.filter(client=client).latest('created_at')
                 last_address = last_order.address
             except Order.DoesNotExist:
-                last_address = ''
-                
+                last_address = ''           
             print(f"Found client in DB: {client.name} ({client.id})")
             # Проверяем наличие сохраненных данных в сессии
             session_client_data = request.session.get('client_data')
@@ -233,35 +232,65 @@ def verify_code(request):
         stored_phone = request.session.get('phone_number')
 
         if phone == stored_phone and code == stored_code:
-            # Проверяем, существует ли клиент
+            # Получаем или создаем клиента
             client, created = Client.objects.get_or_create(
                 phone=phone,
-                defaults={'name': '', 'email': ''}  # Устанавливаем имя и емейл пустыми только для новых клиентов
+                defaults={'name': '', 'email': ''}
             )
-            request.session['client_id'] = client.id
-            # Очищаем сессионные переменные
+            
+            # Получаем последний адрес из заказов
+            last_address = ''
+            try:
+                last_order = Order.objects.filter(client=client).latest('created_at')
+                last_address = last_order.address
+            except Order.DoesNotExist:
+                pass
+            
+            # Формируем полные данные клиента
+            client_data = {
+                'id': client.id,
+                'name': client.name,
+                'phone': client.phone,
+                'email': client.email,
+                'address': last_address
+            }
+            
+            # Сохраняем ВСЕ данные в сессии
+            request.session.update({
+                'client_id': client.id,
+                'client_data': client_data,
+                'is_authenticated': True
+            })
+            
+            # Очищаем временные данные
             del request.session['verification_code']
             del request.session['phone_number']
+
+            # Для новых клиентов добавляем флаг
+            response_data = {
+                'status': 'success',
+                'redirect_url': '/lk/?edit=true' if created else '/lk_order/',
+                'client_data': client_data  # Добавляем данные в ответ
+            }
             
-            # Перенаправление в зависимости от того, новый клиент или нет
-            if created:
-                return JsonResponse({'status': 'success', 'redirect_url': '/lk/?edit=true'})
-            else:
-                return JsonResponse({'status': 'success', 'redirect_url': '/lk_order/'})
-        else:
-            return JsonResponse({'status': 'error'})
+            return JsonResponse(response_data)
+        
+        return JsonResponse({'status': 'error'})
     return JsonResponse({'status': 'error'})
 
 
 def lk_view(request):
-    client_id = request.session.get('client_id')
-    client = None
-    if client_id:
-        try:
-            client = Client.objects.get(pk=client_id)
-        except Client.DoesNotExist:
-            return redirect('index')
-    return render(request, 'lk.html', {'client': client})
+    # Берем данные ТОЛЬКО из сессии
+    client_data = request.session.get('client_data')
+    
+    if not client_data:
+        return redirect('index')
+    
+    # Для рендеринга в шаблоне
+    return render(request, 'lk.html', {
+        'client_data_json': json.dumps(client_data),
+        'client': client_data  # Передаем словарь вместо объекта модели
+    })
 
 
 @require_GET
@@ -302,14 +331,24 @@ def update_client_data(request):
         client.name = data.get('name', client.name)
         client.phone = data.get('phone', client.phone)
         client.email = data.get('email', client.email)
-        client.last_address = data.get('last_address', client.last_address)
         client.save()
 
-        # Обновляем данные в сессии
-        request.session['client_name'] = client.name
-        request.session['client_phone'] = client.phone
-        request.session['client_email'] = client.email
-        request.session['client_last_address'] = client.last_address
+        # Получаем последний адрес из заказов клиента, если они есть
+        try:
+            last_order = Order.objects.filter(client=client).latest('created_at')
+            last_address = last_order.address
+        except Order.DoesNotExist:
+            last_address = ''
+
+        # Обновляем данные в сессии в правильном формате
+        client_data = {
+            'name': client.name,
+            'phone': client.phone,
+            'email': client.email,
+            'address': last_address
+        }
+        request.session['client_data'] = client_data
+        request.session.modified = True
 
         # Возвращаем JSON с указанием на перенаправление
         return JsonResponse({'status': 'success', 'redirect_url': '/lk_order/'})
@@ -317,3 +356,34 @@ def update_client_data(request):
         return JsonResponse({'error': 'Client not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def get_or_set_client_data(request):
+    client_data = request.session.get('client_data')
+    client_id = request.session.get('client_id')
+
+    if not client_data and client_id:
+        try:
+            client = Client.objects.get(pk=client_id)
+            # Получаем последний адрес из заказов клиента, если они есть
+            try:
+                last_order = Order.objects.filter(client=client).latest('created_at')
+                last_address = last_order.address
+            except Order.DoesNotExist:
+                last_address = ''
+            
+            client_data = {
+                'name': client.name,
+                'phone': client.phone,
+                'email': client.email,
+                'address': last_address
+            }
+            request.session['client_data'] = client_data
+            request.session.modified = True
+        except Client.DoesNotExist:
+            del request.session['client_id']
+            return None
+    elif not client_id:
+        return None
+
+    return client_data
