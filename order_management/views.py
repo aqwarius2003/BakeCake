@@ -9,6 +9,7 @@ import json
 from functools import wraps
 
 from .models import Cake, Order, Client
+from .api_services import send_telegram_notification
 
 
 def require_client(redirect_url='index'):
@@ -241,6 +242,9 @@ def index(request):
                 total_price=cake.get_price(is_urgent=is_urgent),
                 status='new'
             )
+            
+            # Отправляем уведомление в Telegram
+            send_telegram_notification(order)
 
             # Получаем актуальное количество заказов клиента
             client_info = get_client_info(client.id)
@@ -260,7 +264,7 @@ def index(request):
             )
             return redirect('index')
 
-        except Exception as e:
+        except Exception:
             messages.error(
                 request,
                 'Произошла ошибка при создании заказа. '
