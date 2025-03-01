@@ -109,11 +109,13 @@ class SettingsManagerAdmin(admin.ModelAdmin):
 
 @admin.register(ShortLink)
 class ShortLinkAdmin(admin.ModelAdmin):
-    list_display = ('truncated_original_url', 'display_short_link', 'get_clicks_count', 'created_at')
+    list_display = ('truncated_original_url', 'display_short_link', 
+                   'get_clicks_count', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('short_code', 'original_url')
-    readonly_fields = ('short_code', 'created_at', 'get_clicks_count')
-    fields = ('original_url', 'short_code', 'get_clicks_count', 'created_at')
+    readonly_fields = ('short_code', 'created_at')
+    fields = ('original_url', 'short_code', 'created_at')
+    actions = ['update_clicks_stats']
     
     def truncated_original_url(self, obj):
         """Возвращает укороченную версию оригинального URL для отображения в админке"""
@@ -137,14 +139,29 @@ class ShortLinkAdmin(admin.ModelAdmin):
         )
     
     def get_clicks_count(self, obj):
-        """Получает количество переходов по короткой ссылке VK"""
-        from .api_services import count_vk_clicks
-        
+        """Динамически получает актуальное количество переходов по ссылке из API VK"""
         if not obj.short_code.startswith('vk'):
             return 0
             
+        from .api_services import count_vk_clicks
         vk_url = f"https://vk.cc/{obj.short_code.replace('vk', '')}"
         return count_vk_clicks(vk_url)
+    
+    def update_clicks_stats(self, request, queryset):
+        """Обновляет статистику переходов для выбранных ссылок"""
+        from .api_services import count_vk_clicks
+        
+        updated = 0
+        for link in queryset:
+            if link.short_code.startswith('vk'):
+                vk_url = f"https://vk.cc/{link.short_code.replace('vk', '')}"
+                clicks = count_vk_clicks(vk_url)
+                link.clicks_count = clicks
+                link.save()
+                updated += 1
+        
+        from django.contrib import messages
+        messages.success(request, f"Обновлена статистика для {updated} ссылок")
     
     def save_model(self, request, obj, form, change):
         """
@@ -164,10 +181,15 @@ class ShortLinkAdmin(admin.ModelAdmin):
                 # Извлекаем код из URL VK
                 url_parts = urlsplit(vk_url)
                 obj.short_code = f"vk{url_parts.path.strip('/')}"
+                
+                # Сразу получаем количество переходов (скорее всего будет 0 для новой ссылки)
+                from .api_services import count_vk_clicks
+                obj.clicks_count = count_vk_clicks(vk_url)
         
         super().save_model(request, obj, form, change)
     
     truncated_original_url.short_description = "Оригинальный URL"
     display_short_link.short_description = "Короткая ссылка VK"
+    update_clicks_stats.short_description = "Обновить статистику переходов"
     get_clicks_count.short_description = "Переходы"
 

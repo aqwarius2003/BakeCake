@@ -3,7 +3,7 @@ import requests
 from urllib.parse import urlsplit
 
 from django.utils import timezone
-from .models import SettingsManager, ShortLink
+from .models import SettingsManager
 
 
 def send_telegram_notification(order):
@@ -110,35 +110,12 @@ def count_vk_clicks(url):
         response.raise_for_status()
         api_response = response.json()
         url_stats = api_response.get('response', {}).get('stats', [])
-        print(url_stats)
         return url_stats[0].get('views', 0) if url_stats else 0
-    except Exception as e:
-        print(f"Ошибка при получении статистики кликов VK: {e}")
+    except Exception:
+        print(f"Ошибка при получении статистики кликов для ссылки: {url}")
         return 0
 
 
 def is_vk_short_link(url):
     """Проверяет, является ли ссылка короткой ссылкой VK"""
     return urlsplit(url).netloc == 'vk.cc'
-
-
-def sync_short_links_stats():
-    """Синхронизирует статистику кликов для всех коротких ссылок VK"""
-    vk_token = SettingsManager.get_vk_token()
-    if not vk_token:
-        return
-    
-    # Получаем все короткие ссылки из базы
-    short_links = ShortLink.objects.all()
-    
-    for link in short_links:
-        # Если это ссылка VK, обновляем статистику
-        if link.short_code.startswith('vk'):
-            vk_url = f"https://vk.cc/{link.short_code.replace('vk', '')}"
-            clicks = count_vk_clicks(vk_url)
-            link.clicks_count = clicks
-            link.save()
-            print(f"Обновлена статистика для ссылки {vk_url}: {clicks} кликов")
-        else:
-            print(f"Ссылка {link.short_code} не является короткой ссылкой VK")
-
