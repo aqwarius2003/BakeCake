@@ -136,7 +136,7 @@ def index(request):
                 'name': client.name,
                 'phone': client.phone,
                 'email': client.email,
-                'address': last_address
+                'address': request.GET['ADDRESS']  # Используем адрес из текущего заказа
             }
             request.session.modified = True
             print(f"Updated session data: {dict(request.session)}")
@@ -288,7 +288,7 @@ def lk_view(request):
     
     # Для рендеринга в шаблоне
     return render(request, 'lk.html', {
-        'client_data_json': json.dumps(client_data),
+        'client_data': json.dumps(client_data),
         'client': client_data  # Передаем словарь вместо объекта модели
     })
 
