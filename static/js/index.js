@@ -122,6 +122,7 @@ Vue.createApp({
             Comments: '',
             Designed: false,
             isUrgent: false,
+            showStep3: false,
 
             Name: '',
             Phone: null,
@@ -135,6 +136,22 @@ Vue.createApp({
         }
     },
     methods: {
+        handleHash() {
+            if (window.location.hash === '#step3') {
+                this.showStep3 = true;
+                // После обновления DOM прокручиваем к элементу
+                this.$nextTick(() => {
+                    const element = document.getElementById('step3');
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            }
+        },
+        showConstructor() {
+            // Устанавливаем хэш и позволяем обработчику handleHash сделать остальную работу
+            window.location.hash = 'step3';
+        },
         ToStep4() {
             this.Designed = true
             setTimeout(() => {
@@ -259,6 +276,9 @@ Vue.createApp({
             this.Address = this.client.address || '';
         }
 
+        // Проверяем, есть ли в URL якорь #step3 и показываем конструктор, если да
+        this.handleHash();
+
         // Добавляем обработчик события для получения данных из сессии
         window.addEventListener('message', (event) => {
             if (event.data.type === 'clientData') {
@@ -268,6 +288,11 @@ Vue.createApp({
                 this.Email = this.client.email || '';
                 this.Address = this.client.address || '';
             }
+        });
+        
+        // Обработчик изменения хэша в URL
+        window.addEventListener('hashchange', () => {
+            this.handleHash();
         });
     }
 }).mount('#VueApp')
