@@ -44,14 +44,18 @@
                         <small class="fw-lighter text-decoration-none fs_12 cake_blue">Пн - Вс 10:00—20:00</small>
                     </li>
                     <li class="nav-item d-flex align-items-center">
-                        <a class="nav-link fw-lighter me-1 cake_blue position-relative" href="#">
+                        <a class="nav-link fw-lighter me-1 cake_blue position-relative" href="{% url 'lk_order' %}">
                             <img src="{% static 'img/shopping-cart.svg' %}" alt="">
-                            <span class="position-absolute translate-middle badge rounded-pill cake__bg_pink fs_8">1</span>
+                            {% if client and client.name and client.phone and client.email and orders_count > 0 %}
+                            <span class="position-absolute translate-middle badge rounded-pill cake__bg_pink fs_8">{{ orders_count }}</span>
+                            {% endif %}
                         </a>
                         {% if client %}
                             <a class="nav-link fw-lighter me-1 cake_blue position-relative" href="{% url 'lk_order' %}">
                                 <img src="{% static 'img/user.svg' %}" alt="">
+                                {% if not client.name or not client.phone or not client.email %}
                                 <span class="position-absolute translate-middle badge rounded-pill cake__bg_pink fs_8">1</span>
+                                {% endif %}
                             </a>
                             <a class="nav-link fw-lighter cake_grey fs_12" href="{% url 'lk_order' %}">
                                 {{ client.name }}
