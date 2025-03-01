@@ -35,7 +35,7 @@
 						<button type="submit" ref="HiddenFormSubmitReg">reg</button>
 					</form>
 					<v-form :validation-schema="RegSchema" class="modal-body position-relative d-flex flex-column align-items-center px-5 pb-4" @submit="RegSubmit">
-						<v-field v-if="RegInput !== 'Регистрация успешна'" v-model="RegInput" name="reg" type="text" id="reg" :placeholder="Step === `Number` ? `Введите ваш номер` : `Введите код`" class="form-control cake__textinput" @input="errorMessage = ''"></v-field>
+						<v-field v-if="RegInput !== 'Регистрация успешна'" v-model="RegInput" name="reg" type="text" id="reg" :placeholder="Step === `Number` ? `Введите ваш номер` : `Введите код`" class="form-control cake__textinput"></v-field>
 						<v-field v-if="Step === 'Number'" v-model="RegInput" type="phone" name="phone_format" class="d-none"></v-field>
 						<v-field v-if="Step === 'Code'" v-model="RegInput" type="phone" name="code_format" class="d-none"></v-field>
 						<small v-if="errorMessage" class="fs_12 cake_pink text-center position-absolute bottom-0">
@@ -46,18 +46,18 @@
 						</small>
 						<button v-if="RegInput !== 'Регистрация успешна'" type="submit" class="btn text-white w-100 rounded-pill mt-3 py-2 shadow-none cake__button fs_12 cake__bg_pink">Отправить</button>
 						<span v-if="RegInput === 'Регистрация успешна'" class="cake_grey text-center">Регистрация успешна</span>
-						<small v-if="!errorMessage" class="fs_12 cake_pink text-center position-absolute bottom-0"><error-message name="reg">
+						<small class="fs_12 cake_pink text-center position-absolute bottom-0"><error-message name="reg">
 							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-exclamation-circle mb-1" viewBox="0 0 16 16">
 								<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
 								<path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
 							</svg>
 							{{Step === 'Number' ? 'Введите номер' : 'Введите код'}}</error-message></small>
-						<error-message v-if="!errorMessage" name="phone_format" class="fs_12 cake_pink text-center position-absolute bottom-0"></error-message>
-						<error-message v-if="!errorMessage" name="code_format" class="fs_12 cake_pink text-center position-absolute bottom-0"></error-message>
+						<error-message name="phone_format" class="fs_12 cake_pink text-center position-absolute bottom-0"></error-message>
+						<error-message name="code_format" class="fs_12 cake_pink text-center position-absolute bottom-0"></error-message>
 					</v-form>
 
 					<div class="modal-footer d-flex flex-column justify-content-between align-items-center text-center border-0 mx-5">
-						<p class="fs_12 cake_grey">{{Step === `Number` ? `Нажимая на кнопку, вы соглашаетесь на обработку персональных данных в соответствии с политикой конфиденциальности` : Step === 'Code' ? `Осталось времени: 05:00` : ``}}</p>
+						<p class="fs_12 cake_grey">{{Step === `Number` ? `Нажимая на кнопку, вы соглашаетесь на обработку персональных данных в соответствии с ` : Step === 'Code' ? `Осталось времени: 05:00` : ``}}{% endverbatim %}<a v-if="Step === 'Number'" href="{% static '/doc/soglasie.pdf' %}" target="_blank" style="font-size: inherit;" class="fs_12 cake_grey">{% verbatim %}политикой конфиденциальности</a>.</p>
 						<a href="#" v-if="Step === `Code`" @click.prevent="ToRegStep1" class="text-decoration-none cake_pink fs_12">изменить данные</a>
 					</div>
 					{% endverbatim %}
@@ -363,7 +363,7 @@
 								{% endverbatim %}
 								<small class="fw-lighter text-decoration-none fs_12 cake_blue" style="text-align: right;">
 									Нажимая «К оплате», вы соглашаетесь на обработку ваших<br>персональных данных в соответствии с
-									<a href="/doc/soglasie.pdf" target="_blank" style="font-size: inherit;">Политикой конфиденциальности</a>.
+									<a href="{% static '/doc/soglasie.pdf' %}" target="_blank" style="font-size: inherit;">Политикой конфиденциальности</a>.
 								</small>
 								<button type="submit" class="btn btn_hover text-white rounded-pill mt-3 px-5 shadow-none cake__button cake__bg_pink">К оплате</button>
 							</div>
