@@ -38,11 +38,13 @@ Vue.createApp({
             },
             Step: 'Number',
             RegInput: '',
-            EnteredNumber: ''
+            EnteredNumber: '',
+            errorMessage: ''
         }
     },
     methods: {
         RegSubmit() {
+            this.errorMessage = '';
             if (this.Step === 'Number') {
                 // Отправляем номер телефона на сервер для запроса кода
                 fetch('/request_code/', {
@@ -60,7 +62,7 @@ Vue.createApp({
                         this.EnteredNumber = this.RegInput;
                         this.RegInput = '';
                     } else {
-                        alert('Ошибка при запросе кода.');
+                        this.errorMessage = 'Ошибка при запросе кода';
                     }
                 });
             } else {
@@ -79,7 +81,7 @@ Vue.createApp({
                         // Используем URL для перенаправления, который возвращается из вьюхи
                         window.location.href = data.redirect_url;
                     } else {
-                        alert('Неверный код.');
+                        this.errorMessage = 'Неверный код';
                     }
                 });
             }
@@ -87,11 +89,13 @@ Vue.createApp({
         ToRegStep1() {
             this.Step = 'Number'
             this.RegInput = this.EnteredNumber
+            this.errorMessage = '';
         },
         Reset() {
             this.Step = 'Number'
             this.RegInput = ''
             this.EnteredNumber = ''
+            this.errorMessage = '';
         },
         getCookie(name) {
             let cookieValue = null;
