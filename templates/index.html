@@ -1,67 +1,13 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-	<link rel="stylesheet" href="{% static 'css/Style.css' %}">
-	<!-- Для разработки: -->
-	<script src="https://unpkg.com/vue@3"></script>
-	<!-- Для продакшина: -->
-	<!-- <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script> -->
-	<script src="https://unpkg.com/vee-validate"></script>
-	<title>Тортики</title>
-</head>
-<body>
-<header class="navbar navbar-expand-xl navbar-light fixed-top bg-white py-4">
-	<nav class="container">
-		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
-			<span class="navbar-toggler-icon"></span>
-		</button>
-		<a class="navbar-brand" href="#">
-			<img src="{% static 'img/Logo.svg' %}" alt="CakeBake">
-		</a>
-		<div class="collapse navbar-collapse justify-content-end" id="navbar">
-			<ul class="navbar-nav">
-				<li class="nav-item me-5">
-					<a class="nav-link fw-lighter cake_blue" href="#step3">Создать торт</a>
-				</li>
-				<li class="nav-item me-5">
-					<a class="nav-link fw-lighter cake_blue" href="#step2">Каталог</a>
-				</li>
-				<li class="nav-item me-5">
-					<a class="nav-link fw-lighter cake_blue" href="#step4">Оплата и доставка</a>
-				</li>
-				<li class="nav-item me-5">
-					<a class="nav-link fw-lighter cake_blue" href="#Contacts">Контакты</a>
-				</li>
-				<li class="nav-item d-block d-xl-flex flex-column align-items-end me-5">
-					<small class="fw-lighter text-decoration-none fs_12 cake_blue">8 (495) 000-00-00</small>
-					<small class="fw-lighter text-decoration-none fs_12 cake_blue">Пн - Вс 10:00—20:00</small>
-				</li>
-				<li class="nav-item d-flex align-items-center">
-					<a class="nav-link fw-lighter me-1 cake_blue position-relative" href="#">
-						<img src="{% static 'img/shopping-cart.svg' %}" alt="">
-						<!--метка на иконке, убрать класс d-none чтоб появилась-->
-						<span class="position-absolute translate-middle badge rounded-pill cake__bg_pink fs_8 d-none">1</span>
-					</a>
-					<a class="nav-link fw-lighter me-1 cake_blue position-relative" href="#RegModal" data-bs-toggle="modal">
-						<img src="{% static 'img/user.svg' %}" alt="">
-						<!--метка на иконке, убрать класс d-none чтоб появилась-->
-						<span class="position-absolute translate-middle badge rounded-pill cake__bg_pink fs_8 d-none">1</span>
-					</a>
-					<a class="nav-link fw-lighter cake_grey fs_12 d-none" href="#">
-						Ирина
-					</a>
-				</li>
-			</ul>
-		</div>
-	</nav>
 
-</header>
+{% block title %}Тортики{% endblock %}
 
+{% block meta %}
+<meta name="format-detection" content="telephone=no">
+{% endblock %}
+
+{% block content %}
 <main>
 	<div class="container mt-header">
 		{% if messages %}
@@ -92,6 +38,12 @@
 						<v-field v-if="RegInput !== 'Регистрация успешна'" v-model="RegInput" name="reg" type="text" id="reg" :placeholder="Step === `Number` ? `Введите ваш номер` : `Введите код`" class="form-control cake__textinput"></v-field>
 						<v-field v-if="Step === 'Number'" v-model="RegInput" type="phone" name="phone_format" class="d-none"></v-field>
 						<v-field v-if="Step === 'Code'" v-model="RegInput" type="phone" name="code_format" class="d-none"></v-field>
+						<small v-if="errorMessage" class="fs_12 cake_pink text-center position-absolute bottom-0">
+							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-exclamation-triangle-fill mb-1" viewBox="0 0 16 16">
+								<path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+							</svg>
+							{{ errorMessage.toUpperCase() }}
+						</small>
 						<button v-if="RegInput !== 'Регистрация успешна'" type="submit" class="btn text-white w-100 rounded-pill mt-3 py-2 shadow-none cake__button fs_12 cake__bg_pink">Отправить</button>
 						<span v-if="RegInput === 'Регистрация успешна'" class="cake_grey text-center">Регистрация успешна</span>
 						<small class="fs_12 cake_pink text-center position-absolute bottom-0"><error-message name="reg">
@@ -105,7 +57,7 @@
 					</v-form>
 
 					<div class="modal-footer d-flex flex-column justify-content-between align-items-center text-center border-0 mx-5">
-						<p class="fs_12 cake_grey">{{Step === `Number` ? `Нажимая на кнопку, вы соглашаетесь на обработку персональных данных в соответствии с политикой конфиденциальности` : Step === 'Code' ? `Осталось времени: 05:00` : ``}}</p>
+						<p class="fs_12 cake_grey">{{Step === `Number` ? `Нажимая на кнопку, вы соглашаетесь на обработку персональных данных в соответствии с ` : Step === 'Code' ? `Осталось времени: 05:00` : ``}}{% endverbatim %}<a v-if="Step === 'Number'" href="{% static '/doc/soglasie.pdf' %}" target="_blank" style="font-size: inherit;" class="fs_12 cake_grey">{% verbatim %}политикой конфиденциальности</a>.</p>
 						<a href="#" v-if="Step === `Code`" @click.prevent="ToRegStep1" class="text-decoration-none cake_pink fs_12">изменить данные</a>
 					</div>
 					{% endverbatim %}
@@ -120,7 +72,7 @@
 			<div class="col-12 col-xxl-6 d-flex flex-column justify-content-center align-items-center align-items-xxl-start">
 				<h1 class="font_Gogh fs_40 cake_blue">Создайте торт своей мечты</h1>
 				<span class="cake_grey fw-lighter">Уникальность и красота в пару кликов</span>
-				<a href="#step3" class="btn text-white rounded-pill px-5 mt-3 shadow-none cake__button cake__bg_pink">Создать</a>
+				<a href="#step3" class="btn text-white rounded-pill px-5 mt-3 shadow-none cake__button cake__bg_pink" @click="showConstructor">Создать</a>
 			</div>
 			<div class="position-fixed bottom-0 m-5 w-auto end-0">
 				<div class="d-flex">
@@ -156,11 +108,11 @@
 				</div>
 			</div>
 			<div class="d-flex justify-content-center mt-2">
-				<button class="btn text-white rounded-pill shadow-none cake__button cake__bg_pink">Открыть каталог</button>
+				<button class="btn text-white rounded-pill shadow-none cake__button cake__bg_pink" @click="showConstructor">Открыть каталог</button>
 			</div>
 		</article>
 
-		<article class="row pt-header text-center d-flex justify-content-center">
+		<article id="payment-delivery" class="row pt-header text-center d-flex justify-content-center">
 			<h2 class="font_Gogh fs_40 cake_blue text-center mb-5">Оплата и доставка</h2>
 			<div class="col-12 col-sm-6 col-lg-4 d-flex flex-column align-items-center">
 				<div class="d-flex align-items-center" style="height: 120px">
@@ -184,13 +136,13 @@
 				<p class="cake_grey mt-3">Готовый заказ доставят по адресу в заявке с 10:00 до 23:00 в пределах МКАД</p>
 			</div>
 			<div class="d-flex justify-content-center">
-				<a href="#step3" class="btn text-white rounded-pill mt-3 shadow-none cake__button cake__bg_pink">Оформить заказ</a>
+				<a href="#step3" @click="showConstructor" class="btn text-white rounded-pill mt-3 shadow-none cake__button cake__bg_pink">Оформить заказ</a>
 			</div>
 		</article>
 
 		<article id="VueApp">
 			{% verbatim %}
-			<section class="row pt-header" id="step3">
+			<section class="row pt-header" id="step3" v-if="showStep3">
 				<h2 class="font_Gogh fs_40 cake_blue text-center">Создать свой торт</h2>
 				<v-form :validation-schema="schema1" @submit="ToStep4">
 					<div class="d-flex justify-content-end align-items-center position-relative">
@@ -344,17 +296,17 @@
 							</div>
 							<div class="col-6 col-lg-4 d-flex flex-column">
 								<div class="position-relative pb-1">
-									<v-field v-model="Name" :class="Name ? 'cake__border_blue': ''" type="text" name="name" id="name" placeholder="Введите ваше имя" class="form-control my-3 cake__textinput"></v-field>
+									<v-field v-model="Name" :class="Name ? 'cake__border_blue': ''" type="text" name="name" id="name" placeholder="Введите ваше имя" class="form-control my-3 cake__textinput" :value="client ? client.name : ''"></v-field>
 									<v-field v-model="Name" type="text" name="name_format" class="d-none"></v-field>
 									<error-message name="name_format" class="position-absolute bottom-0 cake_pink fs_12"></error-message>
 								</div>
 								<div class="position-relative pb-1">
-									<v-field v-model="Phone" :class="Phone ? 'cake__border_blue': ''" type="tel" name="phone" id="phone" placeholder="Введите номер" class="form-control my-3 cake__textinput"></v-field>
+									<v-field v-model="Phone" :class="Phone ? 'cake__border_blue': ''" type="tel" name="phone" id="phone" placeholder="Введите номер" class="form-control my-3 cake__textinput" :value="client ? client.phone : ''"></v-field>
 									<v-field v-model="Phone" type="phone" name="phone_format" class="d-none"></v-field>
 									<error-message name="phone_format" class="position-absolute bottom-0 cake_pink fs_12"></error-message>
 								</div>
 								<div class="position-relative pb-1">
-									<v-field v-model="Email" :class="Email ? 'cake__border_blue': ''" type="email" name="email" id="email" placeholder="Введите почту" class="form-control my-3 cake__textinput"></v-field>
+									<v-field v-model="Email" :class="Email ? 'cake__border_blue': ''" type="email" name="email" id="email" placeholder="Введите почту" class="form-control my-3 cake__textinput" :value="client ? client.email : ''"></v-field>
 									<v-field v-model="Email" type="email" name="email_format" class="d-none"></v-field>
 									<error-message name="email_format" class="position-absolute bottom-0 cake_pink fs_12"></error-message>
 								</div>
@@ -372,6 +324,7 @@
 										<li>Декор: {{ DATA.Decors[Decor] }}</li>
 									</ul>
 									<span>{{ Words === '' ? 'Без надписи' : Words }}</span>
+									<span v-if="isUrgent" class="cake_pink">Наценка за срочность 20%</span>
 									{% endverbatim %}
 								</div>
 							</div>
@@ -392,7 +345,7 @@
 								<label for="time" class="my-1 fs_40 cake_blue">Время</label>
 							</div>
 							<div class="col-6 col-lg-4 d-flex flex-column">
-								<v-field v-model="Address" :class="Address ? 'cake__border_blue': ''" type="text" name="address" id="address" placeholder="Введите ваш адрес" class="form-control my-3 cake__textinput"></v-field>
+								<v-field v-model="Address" :class="Address ? 'cake__border_blue': ''" type="text" name="address" id="address" placeholder="Введите ваш адрес" class="form-control my-3 cake__textinput" :value="client ? client.address : ''"></v-field>
 								<v-field v-model="Dates" :class="Dates ? 'cake__border_blue': ''" type="date" name="date" id="date" placeholder="ДД.ММ.ГГ" class="form-control my-3 cake__textinput"></v-field>
 								<v-field v-model="Time" :class="Time ? 'cake__border_blue': ''" type="time" name="time" id="time" placeholder="00:00" class="form-control my-3 cake__textinput"></v-field>
 							</div>
@@ -403,12 +356,14 @@
 								<textarea v-model="DelivComments" :class="DelivComments ? 'cake__border_blue': ''" id="deliv-comment" class="form-control cake__textinput mt-3" rows="2" style="resize: none"></textarea>
 							</div>
 							<div class="col-12 col-md-6 d-flex flex-column align-items-center align-items-md-end mt-3 mt-md-0">
+								{% verbatim %}
 								<div class="d-flex">
-									<span class="cake_pink fs_40 fw-bold me-2">Итого: {{ Cost }}₽</span>
+									<span class="cake_pink fs_40 fw-bold me-2">Итого: {{ TotalCost }} ₽</span>
 								</div>
+								{% endverbatim %}
 								<small class="fw-lighter text-decoration-none fs_12 cake_blue" style="text-align: right;">
 									Нажимая «К оплате», вы соглашаетесь на обработку ваших<br>персональных данных в соответствии с
-									<a href="/doc/soglasie.pdf" target="_blank" style="font-size: inherit;">Политикой конфиденциальности</a>.
+									<a href="{% static '/doc/soglasie.pdf' %}" target="_blank" style="font-size: inherit;">Политикой конфиденциальности</a>.
 								</small>
 								<button type="submit" class="btn btn_hover text-white rounded-pill mt-3 px-5 shadow-none cake__button cake__bg_pink">К оплате</button>
 							</div>
@@ -419,42 +374,28 @@
 		</article>
 	</div>
 </main>
+{% endblock %}
 
-<footer class="mt-5 cake__bg_blue" id="Contacts">
-	<div class="container my-5 py-5">
-		<div class="row">
-			<div class="col-4 col-xl-2 d-flex flex-column">
-				<div>
-					<img src="{% static 'img/Logo.svg' %}" alt="CakeBake" class="mb-2">
-				</div>
-				<small class="text-white fs_12">©2022 CakeBake</small>
-				<small class="text-white fs_12">Все права защищены.</small>
-				<div class="flex-grow-1 d-flex align-items-end">
-					<small class="text-white fs_12">г. Москва,  Большой Козловский пер., д. 12</small>
-				</div>
-			</div>
-			<div class="col-4 col-xl-2 d-flex flex-column">
-				<a href="#" class="text-decoration-none text-white">На свадьбу</a>
-				<a href="#" class="text-decoration-none text-white">На день рождения</a>
-				<a href="#" class="text-decoration-none text-white">На чаепитие</a>
-			</div>
-			<div class="col-4 col-xl-2 d-flex flex-column">
-				<a href="#step3" class="text-decoration-none text-white">Создать торт</a>
-				<a href="#step2" class="text-decoration-none text-white">Каталог</a>
-				<a href="#Contacts" class="text-decoration-none text-white">Контакты</a>
-			</div>
-			<div class="col-12 col-xl-6 d-flex flex-column align-items-start align-items-xl-end mt-3 mt-xl-0">
-				<a href="https://vk.com/devmanorg"><img src="{% static 'img/vk.svg' %}" alt="VK" class="mb-3 mb-xl-5"></a>
-				<small class="text-white fs_12">8 (495) 000-00-00</small>
-				<small class="text-white fs_12">info@cakebake.ru</small>
-				<small class="text-white fs_12">Пн - Вс 10:00—20:00</small>
-			</div>
-		</div>
-	</div>
-</footer>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+{% block scripts %}
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+</script>
 
 <script src="{% static 'js/index.js' %}"></script>
 <script src="{% static 'js/registration.js' %}"></script>
-</body>
-</html>
+{% endblock %}

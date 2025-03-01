@@ -38,31 +38,79 @@ Vue.createApp({
             },
             Step: 'Number',
             RegInput: '',
-            EnteredNumber: ''
+            EnteredNumber: '',
+            errorMessage: ''
         }
     },
     methods: {
         RegSubmit() {
+            this.errorMessage = '';
             if (this.Step === 'Number') {
-                this.$refs.HiddenFormSubmitReg.click()
-                this.Step = 'Code'
-                this.EnteredNumber = this.RegInput
-                this.RegInput = ''
-            }
-            else {
-                this.$refs.HiddenFormSubmitReg.click()
-                this.Step = 'Finish'
-                this.RegInput = 'Регистрация успешна'
+                // Отправляем номер телефона на сервер для запроса кода
+                fetch('/request_code/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ phone: this.RegInput })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        this.Step = 'Code';
+                        this.EnteredNumber = this.RegInput;
+                        this.RegInput = '';
+                    } else {
+                        this.errorMessage = 'Ошибка при запросе кода';
+                    }
+                });
+            } else {
+                // Отправляем код и номер телефона на сервер для проверки
+                fetch('/verify_code/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ phone: this.EnteredNumber, code: this.RegInput })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Используем URL для перенаправления, который возвращается из вьюхи
+                        window.location.href = data.redirect_url;
+                    } else {
+                        this.errorMessage = 'Неверный код';
+                    }
+                });
             }
         },
         ToRegStep1() {
             this.Step = 'Number'
             this.RegInput = this.EnteredNumber
+            this.errorMessage = '';
         },
         Reset() {
             this.Step = 'Number'
             this.RegInput = ''
-            EnteredNumber = ''
+            this.EnteredNumber = ''
+            this.errorMessage = '';
+        },
+        getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
         }
     }
-}).mount('#RegModal')
+}).mount('#RegModal');

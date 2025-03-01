@@ -145,3 +145,4 @@ cython_debug/
 .parcel-cache/
 .idea/
 .qodo
+.codiumai
