@@ -1,83 +1,183 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Cake, Order, Client
-from datetime import datetime
+from django.views.decorators.http import require_http_methods, require_GET
 from django.contrib import messages
-from django.shortcuts import redirect
-from django.contrib.auth import authenticate, login, logout
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import logout
+from datetime import datetime
 import json
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.http import require_GET
+from functools import wraps
+
+from .models import Cake, Order, Client
+
+
+def require_client(redirect_url='index'):
+    """
+    Декоратор для проверки наличия client_id в сессии.
+    Если client_id отсутствует, перенаправляет на указанный URL.
+    
+    Args:
+        redirect_url: URL для перенаправления в случае отсутствия client_id
+    
+    Returns:
+        Декоратор, который проверяет наличие client_id в сессии
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            client_id = request.session.get('client_id')
+            if not client_id:
+                return redirect(redirect_url)
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def get_client_info(client_id):
+    """
+    Получает информацию о клиенте и его заказах из базы данных.
+    
+    Args:
+        client_id: ID клиента
+    
+    Returns:
+        Словарь с данными о клиенте, последним адресом и количеством активных заказов
+        или None, если клиент не найден
+    """
+    try:
+        client = Client.objects.get(pk=client_id)
+        # Получаем заказы клиента
+        orders = Order.objects.filter(client=client)
+        active_orders = orders.exclude(status__in=['cancelled', 'delivered'])
+        orders_count = active_orders.count()
+        
+        # Получаем последний адрес из заказов, если они есть
+        last_address = ''
+        if orders.exists():
+            last_order = orders.latest('created_at')
+            last_address = last_order.address
+        
+        return {
+            'client': client,
+            'last_address': last_address,
+            'orders_count': orders_count
+        }
+    except Client.DoesNotExist:
+        return None
+
+
+def update_session_client_data(request, client, last_address='', orders_count=0):
+    """
+    Обновляет данные клиента в сессии.
+    
+    Args:
+        request: HTTP request объект
+        client: объект модели Client
+        last_address: последний адрес доставки
+        orders_count: количество активных заказов
+    """
+    client_data = {
+        'name': client.name,
+        'phone': client.phone,
+        'email': client.email,
+        'address': last_address
+    }
+    
+    request.session['client_id'] = client.id
+    request.session['client_data'] = client_data
+    request.session['orders_count'] = orders_count
+    request.session.modified = True
+    
+    return client_data
+
+
+def ensure_client_session(request):
+    """
+    Проверяет и обновляет данные клиента в сессии.
+    Если данные клиента отсутствуют в сессии, но есть client_id,
+    функция получает данные из БД и обновляет сессию.
+    
+    Args:
+        request: HTTP request объект
+    
+    Returns:
+        Словарь с данными клиента или None, если клиент не найден
+    """
+    client_id = request.session.get('client_id')
+    client_data = request.session.get('client_data')
+    
+    # Если в сессии есть данные клиента, используем их
+    if client_data and client_id:
+        orders_count = request.session.get('orders_count', 0)
+        return {
+            'client_data': client_data,
+            'client_id': client_id,
+            'orders_count': orders_count
+        }
+    
+    # Если в сессии нет данных клиента, но есть client_id, получаем данные из БД
+    if client_id and not client_data:
+        client_info = get_client_info(client_id)
+        if client_info:
+            client = client_info['client']
+            last_address = client_info['last_address']
+            orders_count = client_info['orders_count']
+            
+            client_data = update_session_client_data(
+                request, client, last_address, orders_count
+            )
+            
+            return {
+                'client_data': client_data,
+                'client_id': client_id,
+                'orders_count': orders_count
+            }
+        else:
+            # Если клиент не найден, очищаем сессию
+            if 'client_id' in request.session:
+                del request.session['client_id']
+            if 'client_data' in request.session:
+                del request.session['client_data']
+            if 'orders_count' in request.session:
+                del request.session['orders_count']
+            request.session.modified = True
+            return None
+    
+    return None
 
 
 @csrf_exempt
 def index(request):
-    print("=== DEBUG: Starting index view ===")
-    print(f"Session ID: {request.session.session_key}")
-    print(f"All session data: {dict(request.session)}")
-    
-    # Проверяем, есть ли ID пользователя в сессии
+    """
+    Главная страница сайта.
+    Обрабатывает просмотр главной страницы и создание заказа через форму.
+    """
+    # Получаем данные клиента из сессии или БД
+    session_data = ensure_client_session(request)
     client_id = request.session.get('client_id')
-    print(f"Client ID from session: {client_id}")
     client_data = None
     client = None
     orders_count = 0
-
-    if client_id:
+    
+    if session_data:
+        client_id = session_data['client_id']
+        orders_count = session_data['orders_count']
+        
         try:
             client = Client.objects.get(pk=client_id)
-            # Получаем последний адрес из заказов клиента, если они есть
-            try:
-                last_order = Order.objects.filter(client=client).latest('created_at')
-                last_address = last_order.address
-                
-                # Проверяем, есть ли количество заказов в сессии
-                if 'orders_count' in request.session:
-                    orders_count = request.session['orders_count']
-                else:
-                    # Если нет в сессии, получаем из БД и сохраняем
-                    orders_count = Order.objects.filter(client=client).exclude(status__in=['cancelled', 'delivered']).count()
-                    request.session['orders_count'] = orders_count
-                    request.session.modified = True
-            except Order.DoesNotExist:
-                last_address = ''
-                orders_count = 0
-                request.session['orders_count'] = 0
-                request.session.modified = True
-            print(f"Found client in DB: {client.name} ({client.id})")
-            # Проверяем наличие сохраненных данных в сессии
-            session_client_data = request.session.get('client_data')
-            print(f"Client data from session: {session_client_data}")
-            if session_client_data:
-                client_data = json.dumps(session_client_data)
-            else:
-                client_data = json.dumps({
-                    'name': client.name,
-                    'phone': client.phone,
-                    'email': client.email,
-                    'address': last_address
-                })
-                # Сохраняем данные в сессии
-                request.session['client_data'] = {
-                    'name': client.name,
-                    'phone': client.phone,
-                    'email': client.email,
-                    'address': last_address
-                }
-                request.session.modified = True
-                print("Updated session with new client data")
+            # Преобразуем данные в JSON для шаблона
+            client_data = json.dumps(session_data['client_data'])
         except Client.DoesNotExist:
-            print("Client not found in DB, clearing session")
-            del request.session['client_id']
+            if 'client_id' in request.session:
+                del request.session['client_id']
             if 'client_data' in request.session:
                 del request.session['client_data']
+            if 'orders_count' in request.session:
+                del request.session['orders_count']
+            request.session.modified = True
 
     # Если данные получены из формы
     if request.method == 'GET' and len(request.GET) > 1:
-        print("=== DEBUG: Processing order form ===")
-        print(f"Form data: {dict(request.GET)}")
         try:
             # Получаем данные из GET-параметров
             levels = int(request.GET.get('LEVELS', 1))
@@ -102,8 +202,10 @@ def index(request):
                 levels=levels,
                 shape=shape,
                 topping=topping,
-                berries=int(request.GET.get('BERRIES', 0)) if int(request.GET.get('BERRIES', 0)) > 0 else None,
-                decor=int(request.GET.get('DECOR', 0)) if int(request.GET.get('DECOR', 0)) > 0 else None,
+                berries=int(request.GET.get('BERRIES', 0)) 
+                        if int(request.GET.get('BERRIES', 0)) > 0 else None,
+                decor=int(request.GET.get('DECOR', 0)) 
+                      if int(request.GET.get('DECOR', 0)) > 0 else None,
                 inscription=request.GET.get('WORDS', '')
             )
 
@@ -113,7 +215,6 @@ def index(request):
                 defaults={
                     'name': request.GET['NAME'],
                     'email': request.GET.get('EMAIL', ''),
-                    # 'last_address':
                 }
             )
 
@@ -126,7 +227,8 @@ def index(request):
             ).time()
 
             # Определяем, является ли заказ срочным
-            is_urgent = (datetime.combine(delivery_date, delivery_time) - datetime.now()).total_seconds() < 24 * 3600
+            is_urgent = (datetime.combine(delivery_date, delivery_time) 
+                         - datetime.now()).total_seconds() < 24 * 3600
 
             # Создаем заказ с учетом срочности
             order = Order.objects.create(
@@ -139,51 +241,45 @@ def index(request):
                 total_price=cake.get_price(is_urgent=is_urgent),
                 status='new'
             )
-            # После создания заказа
-            print(f"Order created successfully. Order ID: {order.id}")
-            print(f"Saving client data to session. Client ID: {client.id}")
-            
-            # Сохраняем ID клиента и данные в сессии
-            request.session['client_id'] = client.id
-            
-            # Получаем количество заказов для клиента
-            orders_count = Order.objects.filter(client=client).exclude(status__in=['cancelled', 'delivered']).count()
-            
-            request.session['client_data'] = {
-                'name': client.name,
-                'phone': client.phone,
-                'email': client.email,
-                'address': request.GET['ADDRESS']  # Используем адрес из текущего заказа
-            }
-            # Сохраняем количество заказов в сессии
-            request.session['orders_count'] = orders_count
-            
-            request.session.modified = True
-            print(f"Updated session data: {dict(request.session)}")
+
+            # Получаем актуальное количество заказов клиента
+            client_info = get_client_info(client.id)
+            if client_info:
+                # Обновляем сессию с новыми данными
+                update_session_client_data(
+                    request,
+                    client_info['client'],
+                    request.GET['ADDRESS'],  # Используем адрес из текущего заказа
+                    client_info['orders_count']
+                )
 
             messages.success(
                 request,
-                f'Заказ №{order.id} успешно создан! Мы свяжемся с вами в ближайшее время.'
+                f'Заказ №{order.id} успешно создан! '
+                f'Мы свяжемся с вами в ближайшее время.'
             )
-            print("=== DEBUG: Redirecting after order creation ===")
             return redirect('index')
 
         except Exception as e:
             messages.error(
                 request,
-                'Произошла ошибка при создании заказа. Пожалуйста, попробуйте снова.'
+                'Произошла ошибка при создании заказа. '
+                'Пожалуйста, попробуйте снова.'
             )
             return redirect('index')
 
     return render(request, 'index.html', {
         'client_data': client_data,
         'client': client,  # Добавляем client в контекст
-        'orders_count': orders_count if client_id else 0  # Добавляем количество заказов
+        'orders_count': orders_count  # Добавляем количество заказов
     })
 
 
 @csrf_exempt
 def register(request):
+    """
+    Регистрирует нового клиента или обновляет существующего по номеру телефона.
+    """
     if request.method == 'POST':
         phone = request.POST.get('phone')
         # тут будет блок проверки на валидность номера телефона
@@ -211,27 +307,33 @@ def register(request):
 
 
 def logout_view(request):
+    """
+    Выполняет выход пользователя из системы и перенаправляет на главную страницу.
+    """
     logout(request)
     return redirect('index')
 
 
+@require_client()
 def lk_order(request):
+    """
+    Страница с заказами клиента в личном кабинете.
+    """
     client_id = request.session.get('client_id')
-    if not client_id:
-        return redirect('index')  # Если не авторизован, перенаправляем на главную
-
-    try:
-        client = Client.objects.get(pk=client_id)
-        orders = Order.objects.filter(client=client)
-        orders_count = orders.exclude(status__in=['cancelled', 'delivered']).count()
-        
-        # Обновляем количество заказов в сессии, т.к. на странице заказов
-        # это значение должно быть наиболее актуальным
-        request.session['orders_count'] = orders_count
-        request.session.modified = True
-        
-    except Client.DoesNotExist:
+    
+    client_info = get_client_info(client_id)
+    if not client_info:
         return redirect('index')
+    
+    client = client_info['client']
+    orders_count = client_info['orders_count']
+    
+    # Обновляем количество заказов в сессии
+    request.session['orders_count'] = orders_count
+    request.session.modified = True
+    
+    # Получаем все заказы, включая отмененные и доставленные для отображения
+    orders = Order.objects.filter(client=client)
 
     return render(request, 'lk-order.html', {
         'client': client, 
@@ -242,6 +344,10 @@ def lk_order(request):
 
 @csrf_exempt
 def request_code(request):
+    """
+    Обрабатывает запрос на отправку проверочного кода на телефон клиента.
+    В текущей реализации код фиксирован (1234) и не отправляется реально.
+    """
     if request.method == 'POST':
         data = json.loads(request.body)
         phone = data.get('phone')
@@ -256,6 +362,10 @@ def request_code(request):
 
 @csrf_exempt
 def verify_code(request):
+    """
+    Проверяет код верификации, полученный через SMS.
+    Если код верный, создает клиента (если отсутствует) и обновляет сессию.
+    """
     if request.method == 'POST':
         data = json.loads(request.body)
         phone = data.get('phone')
@@ -270,40 +380,24 @@ def verify_code(request):
                 defaults={'name': '', 'email': ''}
             )
             
-            # Получаем последний адрес из заказов и считаем количество заказов
-            last_address = ''
-            orders_count = 0
-            try:
-                orders = Order.objects.filter(client=client)
-                orders_count = orders.exclude(status__in=['cancelled', 'delivered']).count()
-                if orders_count > 0:
-                    last_order = orders.latest('created_at')
-                    last_address = last_order.address
-            except Order.DoesNotExist:
-                pass
+            # Получаем информацию о клиенте и его заказах
+            client_info = get_client_info(client.id)
             
-            # Формируем полные данные клиента
-            client_data = {
-                'id': client.id,
-                'name': client.name,
-                'phone': client.phone,
-                'email': client.email,
-                'address': last_address
-            }
-            
-            # Сохраняем ВСЕ данные в сессии
-            request.session.update({
-                'client_id': client.id,
-                'client_data': client_data,
-                'is_authenticated': True,
-                'orders_count': orders_count
-            })
+            # Обновляем сессию
+            client_data = update_session_client_data(
+                request,
+                client,
+                client_info['last_address'] if client_info else '',
+                client_info['orders_count'] if client_info else 0
+            )
             
             # Очищаем временные данные
-            del request.session['verification_code']
-            del request.session['phone_number']
+            if 'verification_code' in request.session:
+                del request.session['verification_code']
+            if 'phone_number' in request.session:
+                del request.session['phone_number']
 
-            # Для новых клиентов добавляем флаг
+            # Формируем ответ
             response_data = {
                 'status': 'success',
                 'redirect_url': '/lk/?edit=true' if created else '/lk_order/',
@@ -316,38 +410,29 @@ def verify_code(request):
     return JsonResponse({'status': 'error'})
 
 
+@require_client()
 def lk_view(request):
-    # Берем данные ТОЛЬКО из сессии
-    client_data = request.session.get('client_data')
-    client_id = request.session.get('client_id')
-    
-    if not client_data:
+    """
+    Страница личного кабинета клиента.
+    """
+    # Проверяем и обновляем данные в сессии
+    session_data = ensure_client_session(request)
+    if not session_data:
         return redirect('index')
-    
-    # Получаем количество заказов клиента
-    if 'orders_count' in request.session:
-        orders_count = request.session['orders_count']
-    else:
-        orders_count = 0
-        if client_id:
-            try:
-                client = Client.objects.get(pk=client_id)
-                orders_count = Order.objects.filter(client=client).exclude(status__in=['cancelled', 'delivered']).count()
-                request.session['orders_count'] = orders_count
-                request.session.modified = True
-            except Client.DoesNotExist:
-                pass
     
     # Для рендеринга в шаблоне
     return render(request, 'lk.html', {
-        'client_data': json.dumps(client_data),
-        'client': client_data,  # Передаем словарь вместо объекта модели
-        'orders_count': orders_count
+        'client_data': json.dumps(session_data['client_data']),
+        'client': session_data['client_data'],  # Передаем словарь вместо объекта модели
+        'orders_count': session_data['orders_count']
     })
 
 
 @require_GET
 def get_client_data(request):
+    """
+    API-метод для получения данных клиента по номеру телефона.
+    """
     phone = request.GET.get('phone')
     client_data = {}
     
@@ -374,6 +459,9 @@ def get_client_data(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def update_client_data(request):
+    """
+    Обновляет данные клиента и сохраняет изменения в БД и сессии.
+    """
     client_id = request.session.get('client_id')
     if not client_id:
         return JsonResponse({'error': 'Not authenticated'}, status=401)
@@ -381,69 +469,30 @@ def update_client_data(request):
     try:
         client = Client.objects.get(pk=client_id)
         data = json.loads(request.body)
+        
+        # Обновляем поля клиента
         client.name = data.get('name', client.name)
         client.phone = data.get('phone', client.phone)
         client.email = data.get('email', client.email)
         client.save()
 
-        # Получаем последний адрес из заказов клиента и количество заказов
-        try:
-            orders = Order.objects.filter(client=client)
-            orders_count = orders.exclude(status__in=['cancelled', 'delivered']).count()
-            if orders_count > 0:
-                last_order = orders.latest('created_at')
-                last_address = last_order.address
-            else:
-                last_address = ''
-        except Order.DoesNotExist:
-            last_address = ''
-            orders_count = 0
-
-        # Обновляем данные в сессии в правильном формате
-        client_data = {
-            'name': client.name,
-            'phone': client.phone,
-            'email': client.email,
-            'address': last_address
-        }
-        request.session['client_data'] = client_data
-        request.session['orders_count'] = orders_count
-        request.session.modified = True
+        # Получаем обновленную информацию о клиенте
+        client_info = get_client_info(client_id)
+        
+        # Обновляем сессию
+        update_session_client_data(
+            request,
+            client,
+            client_info['last_address'],
+            client_info['orders_count']
+        )
 
         # Возвращаем JSON с указанием на перенаправление
-        return JsonResponse({'status': 'success', 'redirect_url': '/lk_order/'})
+        return JsonResponse({
+            'status': 'success', 
+            'redirect_url': '/lk_order/'
+        })
     except Client.DoesNotExist:
         return JsonResponse({'error': 'Client not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
-def get_or_set_client_data(request):
-    client_data = request.session.get('client_data')
-    client_id = request.session.get('client_id')
-
-    if not client_data and client_id:
-        try:
-            client = Client.objects.get(pk=client_id)
-            # Получаем последний адрес из заказов клиента, если они есть
-            try:
-                last_order = Order.objects.filter(client=client).latest('created_at')
-                last_address = last_order.address
-            except Order.DoesNotExist:
-                last_address = ''
-            
-            client_data = {
-                'name': client.name,
-                'phone': client.phone,
-                'email': client.email,
-                'address': last_address
-            }
-            request.session['client_data'] = client_data
-            request.session.modified = True
-        except Client.DoesNotExist:
-            del request.session['client_id']
-            return None
-    elif not client_id:
-        return None
-
-    return client_data
