@@ -109,8 +109,7 @@ class SettingsManagerAdmin(admin.ModelAdmin):
 
 @admin.register(ShortLink)
 class ShortLinkAdmin(admin.ModelAdmin):
-    list_display = ('truncated_original_url', 'display_short_link', 
-                   'get_clicks_count', 'created_at')
+    list_display = ('truncated_original_url', 'display_short_link', 'get_clicks_count', 'detailed_stats_link', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('short_code', 'original_url')
     readonly_fields = ('short_code', 'created_at')
@@ -188,8 +187,20 @@ class ShortLinkAdmin(admin.ModelAdmin):
         
         super().save_model(request, obj, form, change)
     
+    def detailed_stats_link(self, obj):
+        """Генерирует ссылку на подробную статистику по короткой ссылке"""
+        from django.utils.html import format_html
+        if not obj.short_code.startswith('vk'):
+            return "Не удалось создать"
+        stats_url = f"https://vk.com/cc?act=stats&key={obj.short_code.replace('vk', '')}"
+        return format_html(
+            '<a href="{}" target="_blank">{}</a>',
+            stats_url,
+            stats_url
+        )
+
     truncated_original_url.short_description = "Оригинальный URL"
     display_short_link.short_description = "Короткая ссылка VK"
     update_clicks_stats.short_description = "Обновить статистику переходов"
     get_clicks_count.short_description = "Переходы"
-
+    detailed_stats_link.short_description = "Подробная статистика"
