@@ -9,11 +9,11 @@ from .models import SettingsManager
 def send_telegram_notification(order):
     """Отправляем уведомление в Telegram о новом заказе"""
     tg_bot_token, tg_chat_id = SettingsManager.get_telegram_settings()
-    
+
     if not tg_bot_token or not tg_chat_id:
         print("Настройки Telegram не установлены. Уведомление не отправлено.")
         return
-        
+
     delivery_datetime = timezone.make_aware(
         datetime.combine(order.delivery_date, order.delivery_time)
     )
@@ -61,7 +61,7 @@ def get_vk_short_link(url):
         # Если токен VK не настроен, возвращаем оригинальный URL
         print("Токен ВКонтакте не настроен. Короткая ссылка не создана.")
         return url
-    
+
     vk_api_url = 'https://api.vk.com/method/utils.getShortLink'
     payload = {
         'access_token': vk_token,
@@ -74,7 +74,7 @@ def get_vk_short_link(url):
         response.raise_for_status()
         api_response = response.json()
         vk_short_url = api_response['response'].get('short_url')
-        
+
         # Больше не сохраняем ссылку в БД здесь - это делается в админке
         return vk_short_url
     except Exception as e:
@@ -83,20 +83,25 @@ def get_vk_short_link(url):
         return url
 
 
+def is_vk_short_link(url):
+    """Проверяет, является ли ссылка короткой ссылкой VK"""
+    return urlsplit(url).netloc == 'vk.cc'
+
+
 def count_vk_clicks(url):
     """Получает количество кликов по короткой ссылке VK"""
     vk_token = SettingsManager.get_vk_token()
     if not vk_token:
+        print("Токен ВКонтакте не настроен. Статистика кликов не получена.")
         return 0
-    
     # Проверяем, является ли ссылка уже короткой ссылкой VK
     if not is_vk_short_link(url):
         url = get_vk_short_link(url)
-    
+
     vk_api_url = 'https://api.vk.com/method/utils.getLinkStats'
     short_link = urlsplit(url)
     key_short_link = short_link.path.split('/')[-1]
-    
+
     payload = {
         'access_token': vk_token,
         'v': '5.199',
@@ -104,7 +109,7 @@ def count_vk_clicks(url):
         'interval': 'forever',
         'extended': 0
     }
-    
+
     try:
         response = requests.get(vk_api_url, params=payload)
         response.raise_for_status()
@@ -114,8 +119,3 @@ def count_vk_clicks(url):
     except Exception:
         print(f"Ошибка при получении статистики кликов для ссылки: {url}")
         return 0
-
-
-def is_vk_short_link(url):
-    """Проверяет, является ли ссылка короткой ссылкой VK"""
-    return urlsplit(url).netloc == 'vk.cc'

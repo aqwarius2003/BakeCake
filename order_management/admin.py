@@ -1,12 +1,18 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+from django.utils.html import format_html
+from django.contrib import messages
+from urllib.parse import urlsplit
+
 from .models import Cake, Order, Client, SettingsManager, ShortLink
+from .api_services import get_vk_short_link, count_vk_clicks
 
 
 # Расширяем стандартную админку User
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined')
+    list_display = ('username', 'email', 'first_name', 'last_name',
+                    'is_staff', 'date_joined')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('-date_joined',)
@@ -36,7 +42,8 @@ class ClientAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'client_info', 'cake_info', 'delivery_date', 'status', 'total_price')
+    list_display = ('id', 'client_info', 'cake_info', 'delivery_date',
+                    'status', 'total_price')
     list_filter = ('status', 'delivery_date', 'created_at')
     search_fields = ('client__name', 'client__phone', 'address')
     readonly_fields = ('created_at',)
@@ -55,7 +62,6 @@ class OrderAdmin(admin.ModelAdmin):
     )
 
     def client_info(self, obj):
-        from django.utils.html import format_html
         return format_html(
             '<div><strong>{}</strong><br>{}</div>',
             obj.client.name,
@@ -72,14 +78,16 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Cake)
 class CakeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'levels', 'shape', 'topping', 'berries', 'decor', 'inscription')
+    list_display = ('id', 'levels', 'shape', 'topping', 'berries',
+                    'decor', 'inscription')
     list_filter = ('levels', 'shape', 'topping', 'berries', 'decor')
     search_fields = ('inscription',)
 
 
 @admin.register(SettingsManager)
 class SettingsManagerAdmin(admin.ModelAdmin):
-    list_display = ('id', 'telegram_token_masked', 'telegram_chat_id', 'vk_token_masked')
+    list_display = ('id', 'telegram_token_masked', 'telegram_chat_id',
+                    'vk_token_masked')
     
     def has_add_permission(self, request):
         # Запрещаем создание новых настроек, если они уже существуют
@@ -93,14 +101,16 @@ class SettingsManagerAdmin(admin.ModelAdmin):
         if not obj.telegram_token:
             return "Не установлен"
         # Показываем только первые и последние 4 символа токена
-        masked = f"{obj.telegram_token[:4]}...{obj.telegram_token[-4:]}" if len(obj.telegram_token) > 8 else "****"
+        masked = (f"{obj.telegram_token[:4]}...{obj.telegram_token[-4:]}"
+                 if len(obj.telegram_token) > 8 else "****")
         return masked
     
     def vk_token_masked(self, obj):
         if not obj.vk_token:
             return "Не установлен"
         # Показываем только первые и последние 4 символа токена
-        masked = f"{obj.vk_token[:4]}...{obj.vk_token[-4:]}" if len(obj.vk_token) > 8 else "****"
+        masked = (f"{obj.vk_token[:4]}...{obj.vk_token[-4:]}"
+                 if len(obj.vk_token) > 8 else "****")
         return masked
     
     telegram_token_masked.short_description = "Токен Telegram"
@@ -109,7 +119,8 @@ class SettingsManagerAdmin(admin.ModelAdmin):
 
 @admin.register(ShortLink)
 class ShortLinkAdmin(admin.ModelAdmin):
-    list_display = ('truncated_original_url', 'display_short_link', 'get_clicks_count', 'detailed_stats_link', 'created_at')
+    list_display = ('truncated_original_url', 'display_short_link', 
+                    'get_clicks_count', 'detailed_stats_link', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('short_code', 'original_url')
     readonly_fields = ('short_code', 'created_at')
@@ -119,12 +130,11 @@ class ShortLinkAdmin(admin.ModelAdmin):
     def truncated_original_url(self, obj):
         """Возвращает укороченную версию оригинального URL для отображения в админке"""
         max_length = 50
-        return (obj.original_url[:max_length] + '...') if len(obj.original_url) > max_length else obj.original_url
+        return ((obj.original_url[:max_length] + '...')
+                if len(obj.original_url) > max_length else obj.original_url)
     
     def display_short_link(self, obj):
         """Формирует и отображает короткую ссылку VK"""
-        from django.utils.html import format_html
-        
         # Короткая ссылка VK
         if not obj.short_code.startswith('vk'):
             return "Не удалось создать"
@@ -142,14 +152,11 @@ class ShortLinkAdmin(admin.ModelAdmin):
         if not obj.short_code.startswith('vk'):
             return 0
             
-        from .api_services import count_vk_clicks
         vk_url = f"https://vk.cc/{obj.short_code.replace('vk', '')}"
         return count_vk_clicks(vk_url)
     
     def update_clicks_stats(self, request, queryset):
         """Обновляет статистику переходов для выбранных ссылок"""
-        from .api_services import count_vk_clicks
-        
         updated = 0
         for link in queryset:
             if link.short_code.startswith('vk'):
@@ -159,7 +166,6 @@ class ShortLinkAdmin(admin.ModelAdmin):
                 link.save()
                 updated += 1
         
-        from django.contrib import messages
         messages.success(request, f"Обновлена статистика для {updated} ссылок")
     
     def save_model(self, request, obj, form, change):
@@ -167,9 +173,6 @@ class ShortLinkAdmin(admin.ModelAdmin):
         При сохранении модели генерирует короткую ссылку через VK API
         """
         if not change:  # Только для новых объектов
-            from .api_services import get_vk_short_link
-            from urllib.parse import urlsplit
-            
             # Создаем короткую ссылку через VK API
             vk_url = get_vk_short_link(obj.original_url)
             
@@ -181,15 +184,13 @@ class ShortLinkAdmin(admin.ModelAdmin):
                 url_parts = urlsplit(vk_url)
                 obj.short_code = f"vk{url_parts.path.strip('/')}"
                 
-                # Сразу получаем количество переходов (скорее всего будет 0 для новой ссылки)
-                from .api_services import count_vk_clicks
+                # Сразу получаем количество переходов (будет 0 для новой ссылки)
                 obj.clicks_count = count_vk_clicks(vk_url)
         
         super().save_model(request, obj, form, change)
     
     def detailed_stats_link(self, obj):
         """Генерирует ссылку на подробную статистику по короткой ссылке"""
-        from django.utils.html import format_html
         if not obj.short_code.startswith('vk'):
             return "Не удалось создать"
         stats_url = f"https://vk.com/cc?act=stats&key={obj.short_code.replace('vk', '')}"
