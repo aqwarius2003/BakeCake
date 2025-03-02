@@ -106,7 +106,7 @@ def count_vk_clicks(url):
         'access_token': vk_token,
         'v': '5.199',
         'key': key_short_link,
-        'interval': 'forever',
+        # 'interval': 'forever',
         'extended': 0
     }
 
