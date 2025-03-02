@@ -203,10 +203,8 @@ def index(request):
                 levels=levels,
                 shape=shape,
                 topping=topping,
-                berries=int(request.GET.get('BERRIES', 0)) 
-                        if int(request.GET.get('BERRIES', 0)) > 0 else None,
-                decor=int(request.GET.get('DECOR', 0)) 
-                      if int(request.GET.get('DECOR', 0)) > 0 else None,
+                berries=int(request.GET.get('BERRIES', 0)) if int(request.GET.get('BERRIES', 0)) > 0 else None,
+                decor=int(request.GET.get('DECOR', 0)) if int(request.GET.get('DECOR', 0)) > 0 else None,
                 inscription=request.GET.get('WORDS', '')
             )
 

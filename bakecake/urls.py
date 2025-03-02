@@ -18,4 +18,5 @@ urlpatterns = [
          views.get_client_data, name='get_client_data'),
     path('api/update-client-data/',
          views.update_client_data, name='update_client_data'),
+    path('webhook/', views.telegram_webhook, name='telegram_webhook'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
