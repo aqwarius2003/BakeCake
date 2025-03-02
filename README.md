@@ -1,10 +1,6 @@
 # 🎂 Проект «BakeCake» 
 
-<<<<<<< HEAD
 ![](https://i.postimg.cc/ZqynvnHQ/lines-torts.jpg)
-=======
-![](https://i.postimg.cc/Dz6xDQFg/1.jpg)![](https://i.postimg.cc/50tsMH2M/2.jpg)![](https://i.postimg.cc/Qtn0NXFK/3.jpg)![](https://i.postimg.cc/yxgnkwRQ/4topt.jpg)
->>>>>>> LK
 
 ## 📌 Описание проекта
 
